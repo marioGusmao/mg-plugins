@@ -1,0 +1,31 @@
+{
+  "name": "ai-quality-guardrails",
+  "version": "0.1.0",
+  "description": "Quality guardrails for AI-assisted development: TDD enforcement, iterative review loops, AI code scrutiny, spec-driven planning, and self-review patterns.",
+  "author": {
+    "name": "Mário Silva Gusmão"
+  },
+  "license": "MIT",
+  "keywords": [
+    "quality",
+    "tdd",
+    "code-review",
+    "ai-safety",
+    "spec-driven",
+    "guardrails"
+  ],
+  "skills": [
+    "skills/plan-with-ac/SKILL.md",
+    "skills/tdd-enforcement/SKILL.md",
+    "skills/review-loop/SKILL.md",
+    "skills/parallel-review/SKILL.md",
+    "skills/ai-code-scrutiny/SKILL.md",
+    "skills/self-review-before-done/SKILL.md"
+  ],
+  "agents": [
+    "agents/explorer.md",
+    "agents/implementer.md",
+    "agents/reviewer.md",
+    "agents/validator.md"
+  ]
+}

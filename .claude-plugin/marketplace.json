@@ -1,0 +1,45 @@
+{
+  "name": "mg-plugins",
+  "description": "Code intelligence, quality guardrails, documentation tools, and protocol routing",
+  "owner": {
+    "name": "Mario Silva Gusmao"
+  },
+  "plugins": [
+    {
+      "name": "codegraph",
+      "description": "Code intelligence — call-chain analysis, blast radius, dependency graphs via MCP",
+      "version": "1.0.0",
+      "source": "./plugins/codegraph",
+      "category": "development",
+      "license": "MIT",
+      "keywords": ["code-intelligence", "mcp", "call-graph", "blast-radius", "tree-sitter"]
+    },
+    {
+      "name": "ai-quality-guardrails",
+      "description": "TDD enforcement, review loops, AI code scrutiny, and self-review patterns",
+      "version": "0.1.0",
+      "source": "./plugins/ai-quality-guardrails",
+      "category": "development",
+      "license": "MIT",
+      "keywords": ["tdd", "code-review", "quality", "guardrails"]
+    },
+    {
+      "name": "kdoc",
+      "description": "Scaffold and maintain ADR, TLDR, runbooks, and governance validation",
+      "version": "1.0.0",
+      "source": "./plugins/kdoc",
+      "category": "documentation",
+      "license": "MIT",
+      "keywords": ["documentation", "adr", "knowledge-management", "governance"]
+    },
+    {
+      "name": "router-plugin",
+      "description": "Protocol pack for cross-repository router packet delivery",
+      "version": "0.1.0",
+      "source": "./plugins/router-plugin",
+      "category": "development",
+      "license": "MIT",
+      "keywords": ["router", "protocol", "cross-repo"]
+    }
+  ]
+}

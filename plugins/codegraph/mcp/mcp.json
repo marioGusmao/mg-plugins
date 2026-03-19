@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "codegraph": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/cli/index.js", "mcp", "--project", "${CLAUDE_PROJECT_DIR}"]
+    }
+  }
+}
