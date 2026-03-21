@@ -1,5 +1,7 @@
 ---
+name: roadmap-builder
 description: Sub-agent that reads all roadmap phase files, cross-references TLDRs and evidence files, and generates a dashboard showing phase completion status and health. Called by knowledge-auditor in parallel with other sub-agents.
+model: sonnet
 tools:
   - Read
   - Glob

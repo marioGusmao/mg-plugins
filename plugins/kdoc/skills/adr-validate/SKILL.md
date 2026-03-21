@@ -20,9 +20,9 @@ Use this skill when the user asks to validate ADRs, check ADR numbering, or audi
 
 1. Run the ADR governance script if available:
    ```bash
-   pnpm kdoc:adr:check
+   npx kdoc doctor
    ```
-   Or directly: `python3 scripts/kdoc/check_adr_governance.py`
+   Note: There is no separate `kdoc:adr:check` script. Use `npx kdoc doctor` which includes ADR governance checks, or fall back to `python3 scripts/kdoc/check_adr_governance.py` if the Python scripts are installed.
 
 2. If the script is not installed, perform manual checks:
 

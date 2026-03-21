@@ -23,11 +23,14 @@ Use this skill when the user asks to check Knowledge health, run governance vali
    - Reports: config validity, structure completeness, script freshness, integration markers, governance.
    - Exit codes: 0 = all pass, 1 = failures, 2 = config error.
 
-2. If `package.json` has `kdoc:check`, also run: `pnpm kdoc:check` (or the equivalent for the project's package manager).
-   - This invokes `check_sync.py` + `check_wikilinks.py` + `check_adr_governance.py`.
+2. If the project has Python governance scripts installed, run them directly:
+   - `python3 scripts/kdoc/check_sync.py` — Knowledge sync check
+   - `python3 scripts/kdoc/check_wikilinks.py` — wikilink integrity
+   - `python3 scripts/kdoc/check_adr_governance.py` — ADR governance
+   Note: There are no `kdoc:check` or `kdoc:governance` npm scripts. Use `npx kdoc doctor` or run the Python scripts directly.
 
-3. If `package.json` has `kdoc:governance`, run: `pnpm kdoc:governance`
-   - This invokes `governance_health.py` for a consolidated report.
+3. If `governance_health.py` is available, run: `python3 scripts/kdoc/governance_health.py`
+   - This produces a consolidated governance report.
 
 4. Interpret and surface:
    - PASS items: summarize count only.

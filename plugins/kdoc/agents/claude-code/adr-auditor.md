@@ -1,5 +1,7 @@
 ---
+name: adr-auditor
 description: Sub-agent that validates all ADRs in the Knowledge/ADR directory for numbering integrity, frontmatter completeness, cross-references, and supersession chain integrity. Called by knowledge-auditor in parallel with other sub-agents.
+model: sonnet
 tools:
   - Read
   - Glob

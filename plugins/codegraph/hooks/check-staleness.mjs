@@ -14,8 +14,15 @@ if (!filePath) process.exit(0);
 try {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || path.resolve(__dirname, '..');
+  const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
   const cliPath = path.join(pluginRoot, 'dist', 'cli', 'index.js');
-  const result = execFileSync('node', [cliPath, 'status', '--check-file', filePath], {
+  const dbPath = path.join(projectDir, '.codegraph', 'graph.db');
+
+  if (!fs.existsSync(dbPath)) {
+    process.exit(0);
+  }
+
+  const result = execFileSync('node', [cliPath, 'status', '--check-file', filePath, '--project', projectDir], {
     timeout: 4000,
     encoding: 'utf-8',
     stdio: ['pipe', 'pipe', 'pipe'],

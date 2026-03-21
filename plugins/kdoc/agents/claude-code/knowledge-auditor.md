@@ -1,10 +1,12 @@
 ---
+name: knowledge-auditor
 description: Orchestrator agent that runs all Knowledge governance scripts, launches specialized sub-agents in parallel, consolidates their findings, and writes a governance-health.md report. Use when the user asks for a full Knowledge audit or "knowledge-auditor".
+model: sonnet
 tools:
   - Read
   - Write
   - Bash
-  - Task
+  - Agent
 color: purple
 ---
 
@@ -35,11 +37,11 @@ Collect all stdout/stderr output and exit codes.
 
 ### Phase 2: Parallel Sub-Agent Launch
 
-After scripts complete, launch 3 sub-agents in parallel using the Task tool:
+After scripts complete, launch 3 sub-agents in parallel using the Agent tool:
 
-- Task("adr-auditor", "Validate all ADRs: numbering, frontmatter, cross-refs, supersession chains. Report findings in structured format.")
-- Task("tldr-sync-checker", "Validate all TLDRs: gap tags vs content, status lifecycle, wikilink references, coverage against modules. Report findings in structured format.")
-- Task("roadmap-builder", "Read all roadmap phase files + TLDRs + evidence files. Generate a dashboard showing phase status, completion percentages, and any mismatches. Report findings in structured format.")
+- Agent("adr-auditor", "Validate all ADRs: numbering, frontmatter, cross-refs, supersession chains. Report findings in structured format.")
+- Agent("tldr-sync-checker", "Validate all TLDRs: gap tags vs content, status lifecycle, wikilink references, coverage against modules. Report findings in structured format.")
+- Agent("roadmap-builder", "Read all roadmap phase files + TLDRs + evidence files. Generate a dashboard showing phase status, completion percentages, and any mismatches. Report findings in structured format.")
 
 Wait for all three to complete before proceeding.
 

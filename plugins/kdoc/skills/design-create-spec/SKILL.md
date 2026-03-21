@@ -19,8 +19,8 @@ Use this skill when the user asks to create a page spec, screen spec, or flow sp
 ## Pack Detection
 
 Check `.kdoc.yaml` for the active pack(s):
-- `nextjs` — use `page-spec.md` or `flow-spec.md` from `Knowledge/Templates/nextjs/`
-- `swift-ios` — use `screen-spec.md` or `flow-spec.md` from `Knowledge/Templates/swift-ios/`
+- `nextjs` — use `page-spec.md` or `flow-spec.md` from `packs/nextjs/templates/`
+- `swift-ios` — use `screen-spec.md` or `flow-spec.md` from `packs/swift-ios/templates/`
 - Multi-pack — ask the user which platform this spec is for.
 
 If no pack template is found, report clearly: "Pack template not installed. Run `npx kdoc add-pack <pack>` first." Do not silently produce an empty document.
@@ -39,7 +39,7 @@ The scope is the app area (e.g., `admin`, `shop`, `app`, `shared`).
 
 1. Detect pack from `.kdoc.yaml`.
 2. Ask (or infer from context): spec type (page/screen/flow), scope, name.
-3. Read the appropriate template from `Knowledge/Templates/{pack}/`.
+3. Read the appropriate template from `packs/{pack}/templates/`.
 4. Fill in available fields from context; leave unfilled sections as placeholders.
 5. Write to the correct path under `Knowledge/Design/{pack}/{scope}/`.
 

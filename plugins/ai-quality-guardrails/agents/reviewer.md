@@ -6,7 +6,7 @@ description: |
   <example>Context: PR needs review. user: "Review this pull request" assistant: "I'll use the reviewer agent to check for issues."</example>
 model: sonnet
 color: yellow
-tools: Read, Grep, Glob, WebFetch, WebSearch, Task
+tools: Read, Grep, Glob, WebFetch, WebSearch, Agent
 disallowedTools: Write, Edit, NotebookEdit
 maxTurns: 55
 ---
@@ -49,7 +49,7 @@ You are a code review and implementation audit agent. Your role is structured, s
 
 For implementation reviews of standard or higher complexity, invoke the `parallel-review` skill:
 
-1. In Claude Code: launch 2-3 reviewer instances via Task tool, each with a different perspective prompt (Correctness, Architecture, Security)
+1. In Claude Code: launch 2-3 reviewer instances via Agent tool, each with a different perspective prompt (Correctness, Architecture, Security)
 2. If nested sub-agents are not available (depth limit), fall back to sequential perspective analysis in a single pass and note "sequential fallback" in output
 3. Aggregate and deduplicate findings
 4. Apply the Review Quality Gate from `review-loop` to combined results

@@ -1,5 +1,7 @@
 ---
+name: tldr-sync-checker
 description: Sub-agent that validates all TLDRs in Knowledge/TLDR for gap tag consistency, status lifecycle correctness, wikilink references, and coverage against project modules. Called by knowledge-auditor in parallel with other sub-agents.
+model: sonnet
 tools:
   - Read
   - Glob

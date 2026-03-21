@@ -3,7 +3,7 @@ name: kdoc:memory-save
 description: Save a piece of operational knowledge to the project's AgentMemory. Use when the user says "remember this", "save to memory", or asks to persist a gotcha, pattern, or operational note.
 metadata:
   filePattern: "Knowledge/AgentMemory/**"
-  bashPattern: "memory:sync|memory:check"
+  bashPattern: "kdoc|memory"
 ---
 
 # kdoc:memory-save — Save to Agent Memory
@@ -33,10 +33,7 @@ Use this skill when the user asks to persist knowledge to agent memory, save a g
 
 4. Write the updated file.
 
-5. If `package.json` has `memory:sync` and `memory:check`, run both:
-   - `pnpm memory:sync`
-   - `pnpm memory:check`
-   These sync the canonical `Knowledge/AgentMemory/` to the AI tool's mirror directory.
+5. After writing the memory file, no automated sync scripts are required. The canonical source is `Knowledge/AgentMemory/` and it is read directly by agents at session start. No `memory:sync` or `memory:check` npm scripts exist.
 
 ## Memory File Conventions
 
