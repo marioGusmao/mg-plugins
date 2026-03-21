@@ -6,6 +6,11 @@
     "name": "MRM"
   },
   "skills": "./skills/",
-  "agents": "./agents/claude-code/",
-  "hooks": "./hooks/"
+  "agents": [
+    "./agents/claude-code/adr-auditor.md",
+    "./agents/claude-code/knowledge-auditor.md",
+    "./agents/claude-code/roadmap-builder.md",
+    "./agents/claude-code/tldr-sync-checker.md"
+  ],
+  "hooks": "./hooks/hooks.json"
 }

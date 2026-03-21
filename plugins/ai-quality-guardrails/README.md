@@ -46,7 +46,7 @@ claude --plugin-dir /path/to/ai-quality-guardrails
 
 Skills use the universal SKILL.md format. Copy the `skills/` directory to your platform's skills location:
 
-- **Codex CLI**: `~/.codex/skills/`
+- **Codex CLI**: `~/.agents/skills/`
 - **Gemini CLI**: Gemini skills directory
 - **Cursor**: Generate `.cursorrules` from skill content
 
