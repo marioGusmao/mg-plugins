@@ -6,40 +6,36 @@
   },
   "plugins": [
     {
-      "name": "codegraph",
-      "description": "Code intelligence — call-chain analysis, blast radius, dependency graphs via MCP",
-      "version": "1.0.0",
-      "source": "./plugins/codegraph",
-      "category": "development",
-      "license": "MIT",
-      "keywords": ["code-intelligence", "mcp", "call-graph", "blast-radius", "tree-sitter"]
-    },
-    {
       "name": "ai-quality-guardrails",
-      "description": "TDD enforcement, review loops, AI code scrutiny, and self-review patterns",
+      "description": "Quality guardrails for AI-assisted development: TDD enforcement, iterative review loops, AI code scrutiny, spec-driven planning, and self-review patterns.",
       "version": "0.1.0",
       "source": "./plugins/ai-quality-guardrails",
       "category": "development",
-      "license": "MIT",
-      "keywords": ["tdd", "code-review", "quality", "guardrails"]
+      "keywords": ["quality", "tdd", "code-review", "ai-safety", "spec-driven", "guardrails"]
+    },
+    {
+      "name": "codegraph",
+      "description": "Code intelligence plugin — call-chain analysis, blast radius, dependency graph queries, and codebase briefings via MCP. Hybrid indexing with Tree-sitter + TypeScript LanguageService.",
+      "version": "1.0.0",
+      "source": "./plugins/codegraph",
+      "category": "development",
+      "keywords": ["code-intelligence", "call-graph", "blast-radius", "mcp", "tree-sitter", "typescript", "static-analysis"]
     },
     {
       "name": "kdoc",
-      "description": "Scaffold and maintain ADR, TLDR, runbooks, and governance validation",
+      "description": "Knowledge documentation toolkit — scaffold, maintain, and govern project documentation structures",
       "version": "1.0.0",
       "source": "./plugins/kdoc",
-      "category": "documentation",
-      "license": "MIT",
-      "keywords": ["documentation", "adr", "knowledge-management", "governance"]
+      "category": "development",
+      "keywords": []
     },
     {
       "name": "router-plugin",
-      "description": "Protocol pack for cross-repository router packet delivery",
-      "version": "0.1.0",
+      "description": "Protocol pack — certify and scaffold router contracts for inter-agent communication",
+      "version": "1.0.0",
       "source": "./plugins/router-plugin",
       "category": "development",
-      "license": "MIT",
-      "keywords": ["router", "protocol", "cross-repo"]
+      "keywords": ["router", "protocol", "certification", "scaffold", "inter-agent"]
     }
   ]
 }
