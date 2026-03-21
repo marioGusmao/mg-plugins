@@ -1,0 +1,6 @@
+interface:
+  display_name: "Create TLDR"
+  short_description: "Create a TLDR functional requirements document for a module or feature"
+
+policy:
+  allow_implicit_invocation: true

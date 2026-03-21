@@ -50,6 +50,14 @@ Skills use the universal SKILL.md format. Copy the `skills/` directory to your p
 - **Gemini CLI**: Gemini skills directory
 - **Cursor**: Generate `.cursorrules` from skill content
 
+When working from the `plugins-develop` monorepo, prefer the root sync command instead of copying manually:
+
+```bash
+./scripts/sync-to-codex.sh ai-quality-guardrails
+```
+
+This installs the reusable skills into Codex. The `agents/` directory remains Claude Code-specific.
+
 ## Documentation
 
 - `docs/DESIGN.md` — Design intent and rationale for each component (D1-D10)

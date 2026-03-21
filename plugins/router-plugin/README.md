@@ -46,7 +46,7 @@ That usually drifts into incompatible packet formats and unsafe cross-repo write
 Use this plugin as the shared contract layer, then let each host repository decide how to integrate it:
 
 1. Copy or mirror the `templates/router/` scaffold into the host repository.
-2. Copy the relevant skill folder into the agent surface used by that repository.
+2. Copy the relevant skill folder into the agent surface used by that repository, or from `plugins-develop` run `./scripts/sync-to-codex.sh router-plugin` to install the reusable skills into Codex.
 3. Keep repository-specific routing rules and machine-local paths outside this plugin.
 
 ## Certification

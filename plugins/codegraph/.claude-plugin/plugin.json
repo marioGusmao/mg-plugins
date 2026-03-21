@@ -12,5 +12,8 @@
     "tree-sitter",
     "typescript",
     "static-analysis"
-  ]
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/",
+  "mcpServers": "./mcp/mcp.json"
 }

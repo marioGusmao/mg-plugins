@@ -1,0 +1,6 @@
+interface:
+  display_name: "Save Memory"
+  short_description: "Save operational knowledge to the project AgentMemory"
+
+policy:
+  allow_implicit_invocation: true

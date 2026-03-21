@@ -14,6 +14,14 @@ kdoc detects your project stack (Next.js, Swift/iOS), asks what you want to inst
 
 **Requirements:** Node.js 20+ and Python 3.9+ on PATH.
 
+If you are working from the `plugins-develop` monorepo, sync the reusable Codex-facing skills from the repo root:
+
+```bash
+./scripts/sync-to-codex.sh kdoc
+```
+
+That sync installs the skill layer only. For a target repository, the Codex integration is still added with `npx kdoc add-tool codex` (or `packages/kdoc/integrations/codex/install.js`).
+
 ## Quick Start
 
 ```bash
@@ -59,7 +67,7 @@ Packs extend the universal core with stack-specific content:
 ## AI Tool Integrations
 
 - **Claude Code** — 12 skills, 4 agents (parallel auditing), 2 hooks (session start, pre-push check)
-- **Codex CLI** — AGENTS.md block with Knowledge structure, multi-stream audit templates
+- **Codex CLI** — AGENTS.md block with Knowledge structure, multi-stream audit templates, and optional skill sync from the monorepo source repo
 
 ## How It Works
 

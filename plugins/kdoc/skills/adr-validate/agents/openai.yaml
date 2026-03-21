@@ -1,0 +1,6 @@
+interface:
+  display_name: "Validate ADRs"
+  short_description: "Validate ADR numbering, cross-references, and status lifecycle"
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Governance Check"
+  short_description: "Run kdoc validation scripts and report Knowledge health"
+
+policy:
+  allow_implicit_invocation: true

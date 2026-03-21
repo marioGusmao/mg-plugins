@@ -1,0 +1,6 @@
+interface:
+  display_name: "Update Roadmap"
+  short_description: "Update a roadmap phase status and regenerate the dashboard"
+
+policy:
+  allow_implicit_invocation: true

@@ -4,5 +4,8 @@
   "version": "1.0.0",
   "author": {
     "name": "MRM"
-  }
+  },
+  "skills": "./skills/",
+  "agents": "./agents/claude-code/",
+  "hooks": "./hooks/"
 }

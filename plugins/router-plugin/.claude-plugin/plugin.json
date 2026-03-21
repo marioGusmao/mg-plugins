@@ -11,5 +11,6 @@
     "certification",
     "scaffold",
     "inter-agent"
-  ]
+  ],
+  "skills": "./skills/"
 }

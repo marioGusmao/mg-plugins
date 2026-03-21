@@ -1,0 +1,6 @@
+interface:
+  display_name: "Update TLDR Status"
+  short_description: "Update a TLDR status and resolve gap tracking tags"
+
+policy:
+  allow_implicit_invocation: true

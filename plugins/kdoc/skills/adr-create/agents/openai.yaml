@@ -1,0 +1,6 @@
+interface:
+  display_name: "Create ADR"
+  short_description: "Create a new Architecture Decision Record with sequential numbering"
+
+policy:
+  allow_implicit_invocation: true

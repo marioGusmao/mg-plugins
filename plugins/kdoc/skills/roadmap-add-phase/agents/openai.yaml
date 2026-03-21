@@ -1,0 +1,6 @@
+interface:
+  display_name: "Add Roadmap Phase"
+  short_description: "Add a new phase or sub-phase to the project roadmap"
+
+policy:
+  allow_implicit_invocation: true
