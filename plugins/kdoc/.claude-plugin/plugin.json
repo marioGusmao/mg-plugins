@@ -1,7 +1,7 @@
 {
   "name": "kdoc",
   "description": "Knowledge documentation toolkit — scaffold, maintain, and govern project documentation structures",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "author": {
     "name": "MRM"
   },

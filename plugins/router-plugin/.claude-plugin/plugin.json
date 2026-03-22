@@ -1,6 +1,6 @@
 {
   "name": "router-plugin",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Protocol pack — certify and scaffold router contracts for inter-agent communication",
   "author": {
     "name": "Mário Silva Gusmão"
