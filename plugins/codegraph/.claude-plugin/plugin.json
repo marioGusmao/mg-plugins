@@ -1,8 +1,10 @@
 {
   "name": "codegraph",
   "description": "Code intelligence plugin — call-chain analysis, blast radius, dependency graph queries, and codebase briefings via MCP. Hybrid indexing with Tree-sitter + TypeScript LanguageService.",
-  "version": "1.0.0",
-  "author": { "name": "MRM" },
+  "version": "1.0.1",
+  "author": {
+    "name": "MRM"
+  },
   "homepage": "https://github.com/marioGusmao/codegraph",
   "keywords": [
     "code-intelligence",
@@ -14,6 +16,5 @@
     "static-analysis"
   ],
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
   "mcpServers": "./mcp/mcp.json"
 }

@@ -109,17 +109,14 @@ codegraph setup --all       # Auto-detects installed tools
 If you are working from the `plugins-develop` monorepo, use the repo root as the source of truth for the skill layer:
 
 ```bash
-# From plugins-develop/
-./scripts/sync-to-codex.sh codegraph
-
-# Then build/install the runtime from packages/codegraph
+# From plugins-develop/, build/install the runtime from packages/codegraph
 cd packages/codegraph
 npm install
 npm run build
 npm install -g .
 ```
 
-After that, run `codegraph setup --codex` in each target repository where you want the MCP wiring.
+Then run `codegraph setup --codex` in each target repository where you want the MCP wiring. Note: the current repo-native Codex sync skips `codegraph/skills/codegraph` because that skill does not yet ship an `agents/openai.yaml` marker.
 
 ### From source (development)
 

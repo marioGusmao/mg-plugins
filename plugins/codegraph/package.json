@@ -1,0 +1,44 @@
+{
+  "name": "codegraph",
+  "version": "1.0.0",
+  "description": "Code intelligence — call-chain analysis, blast radius, dependency graph queries via MCP",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "codegraph": "./dist/cli/index.js"
+  },
+  "exports": {
+    ".": "./dist/core/index.js"
+  },
+  "files": [
+    "dist/"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "~1.27.0",
+    "better-sqlite3": "^11.0.0",
+    "commander": "^14.0.0",
+    "glob": "^11.0.0",
+    "tree-sitter": "^0.21.1",
+    "tree-sitter-javascript": "^0.23.0",
+    "tree-sitter-typescript": "^0.23.0",
+    "typescript": "^5.9.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^22.0.0",
+    "vitest": "^3.0.0"
+  }
+}

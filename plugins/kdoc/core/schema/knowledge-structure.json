@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Canonical Knowledge directory structure managed by kdoc",
+  "version": "1",
+  "areas": {
+    "adr": {
+      "description": "Architecture Decision Records",
+      "directory": "ADR",
+      "required": ["README.md"],
+      "optional": ["ADR-CROSS-REFERENCES.md"],
+      "templates": {
+        "README.md": "core/templates/readme-adr.md",
+        "ADR-*.md": "core/templates/adr.md"
+      }
+    },
+    "tldr": {
+      "description": "Functional requirements (one file per feature)",
+      "directory": "TLDR",
+      "required": ["README.md"],
+      "scoped": true,
+      "templates": {
+        "README.md": "core/templates/readme-tldr.md",
+        "**/*.md": "core/templates/tldr.md"
+      }
+    },
+    "roadmap": {
+      "description": "Phase-based project roadmap",
+      "directory": "Roadmap",
+      "required": ["README.md"],
+      "optional": ["phases/"],
+      "templates": {
+        "README.md": "core/templates/readme-roadmap.md",
+        "phases/phase-*.md": "core/templates/phase.md",
+        "phases/*/*.md": "core/templates/sub-phase.md"
+      }
+    },
+    "guides": {
+      "description": "Operational guides and references",
+      "directory": "Guides",
+      "required": [],
+      "templates": {
+        "**/*.md": "core/templates/guide.md"
+      }
+    },
+    "runbooks": {
+      "description": "Operational runbooks",
+      "directory": "runbooks",
+      "required": [],
+      "templates": {
+        "**/*.md": "core/templates/runbook.md"
+      }
+    },
+    "threat-models": {
+      "description": "STRIDE threat models per security-critical module",
+      "directory": "ThreatModels",
+      "required": [],
+      "templates": {
+        "**/*.md": "core/templates/threat-model.md"
+      }
+    },
+    "templates": {
+      "description": "User-facing document templates",
+      "directory": "Templates",
+      "required": [],
+      "templates": {}
+    },
+    "agent-memory": {
+      "description": "Shared AI agent memory (persists across sessions)",
+      "directory": "AgentMemory",
+      "required": ["MEMORY.md"],
+      "templates": {
+        "MEMORY.md": "core/templates/memory.md"
+      }
+    },
+    "context-pack": {
+      "description": "Single-file quick-start context for AI agents",
+      "directory": ".",
+      "required": ["ContextPack.md"],
+      "templates": {
+        "ContextPack.md": "core/templates/context-pack.md"
+      }
+    },
+    "index": {
+      "description": "Auto-generated navigation index",
+      "directory": ".",
+      "required": ["INDEX.md"],
+      "templates": {}
+    },
+    "governance": {
+      "description": "Governance reference documents (installed into Knowledge/governance/)",
+      "directory": "governance",
+      "required": [],
+      "templates": {}
+    }
+  }
+}

@@ -56,7 +56,7 @@ When working from the `plugins-develop` monorepo, prefer the root sync command i
 ./scripts/sync-to-codex.sh ai-quality-guardrails
 ```
 
-This installs the reusable skills into Codex. The `agents/` directory remains Claude Code-specific.
+Today this package has no `agents/openai.yaml` markers, so the repo-native Codex sync reports these skills as Claude-only. The `agents/` directory also remains Claude Code-specific. If you want Codex support here, add the Codex markers first or copy the raw SKILL.md content manually with that tradeoff explicit.
 
 ## Documentation
 

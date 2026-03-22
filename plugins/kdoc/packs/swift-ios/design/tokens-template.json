@@ -1,0 +1,71 @@
+{
+  "$schema": "kdoc/ios-semantic/1.0",
+  "$description": "Semantic design tokens for {{PROJECT_NAME}} iOS. Values reference Apple system APIs where applicable.",
+  "typography": {
+    "largeTitle":  { "uiFont": "UIFont.preferredFont(forTextStyle: .largeTitle)",  "swiftUI": ".largeTitle",  "size": 34 },
+    "title":       { "uiFont": "UIFont.preferredFont(forTextStyle: .title1)",       "swiftUI": ".title",       "size": 28 },
+    "title2":      { "uiFont": "UIFont.preferredFont(forTextStyle: .title2)",       "swiftUI": ".title2",      "size": 22 },
+    "title3":      { "uiFont": "UIFont.preferredFont(forTextStyle: .title3)",       "swiftUI": ".title3",      "size": 20 },
+    "headline":    { "uiFont": "UIFont.preferredFont(forTextStyle: .headline)",     "swiftUI": ".headline",    "size": 17, "weight": "semibold" },
+    "body":        { "uiFont": "UIFont.preferredFont(forTextStyle: .body)",         "swiftUI": ".body",        "size": 17 },
+    "callout":     { "uiFont": "UIFont.preferredFont(forTextStyle: .callout)",      "swiftUI": ".callout",     "size": 16 },
+    "subheadline": { "uiFont": "UIFont.preferredFont(forTextStyle: .subheadline)",  "swiftUI": ".subheadline", "size": 15 },
+    "footnote":    { "uiFont": "UIFont.preferredFont(forTextStyle: .footnote)",     "swiftUI": ".footnote",    "size": 13 },
+    "caption":     { "uiFont": "UIFont.preferredFont(forTextStyle: .caption1)",     "swiftUI": ".caption",     "size": 12 },
+    "caption2":    { "uiFont": "UIFont.preferredFont(forTextStyle: .caption2)",     "swiftUI": ".caption2",    "size": 11 }
+  },
+  "color": {
+    "$note": "All semantic colors adapt to light/dark mode automatically via UIColor/Color system APIs.",
+    "background": {
+      "primary":   { "uiColor": "UIColor.systemBackground",        "swiftUI": "Color(.systemBackground)" },
+      "secondary": { "uiColor": "UIColor.secondarySystemBackground","swiftUI": "Color(.secondarySystemBackground)" },
+      "grouped":   { "uiColor": "UIColor.systemGroupedBackground",  "swiftUI": "Color(.systemGroupedBackground)" }
+    },
+    "text": {
+      "primary":   { "uiColor": "UIColor.label",            "swiftUI": "Color(.label)" },
+      "secondary": { "uiColor": "UIColor.secondaryLabel",   "swiftUI": "Color(.secondaryLabel)" },
+      "tertiary":  { "uiColor": "UIColor.tertiaryLabel",    "swiftUI": "Color(.tertiaryLabel)" },
+      "link":      { "uiColor": "UIColor.link",             "swiftUI": "Color(.link)" }
+    },
+    "interactive": {
+      "accent":    { "$note": "Set in Xcode Asset Catalog as AccentColor — referenced via Color.accentColor in SwiftUI" },
+      "destructive":{ "uiColor": "UIColor.systemRed",       "swiftUI": "Color(.systemRed)" }
+    },
+    "separator":   { "uiColor": "UIColor.separator",         "swiftUI": "Color(.separator)" }
+  },
+  "spacing": {
+    "$unit": "points",
+    "xs":  { "value": 4 },
+    "sm":  { "value": 8 },
+    "md":  { "value": 16 },
+    "lg":  { "value": 24 },
+    "xl":  { "value": 32 },
+    "xxl": { "value": 48 }
+  },
+  "iconography": {
+    "$note": "Use SF Symbols — reference by name. Always set accessibilityLabel.",
+    "examples": {
+      "add":      "plus",
+      "remove":   "minus",
+      "close":    "xmark",
+      "back":     "chevron.left",
+      "forward":  "chevron.right",
+      "settings": "gearshape",
+      "search":   "magnifyingglass",
+      "share":    "square.and.arrow.up",
+      "favorite": "heart",
+      "error":    "exclamationmark.triangle"
+    }
+  },
+  "cornerRadius": {
+    "sm":  { "value": 6,    "unit": "points" },
+    "md":  { "value": 12,   "unit": "points" },
+    "lg":  { "value": 16,   "unit": "points" },
+    "pill":{ "value": 9999, "unit": "points", "$note": "Use for capsule/pill shapes" }
+  },
+  "minTapTarget": {
+    "value": 44,
+    "unit": "points",
+    "$note": "Apple HIG minimum: 44 x 44 pt for all interactive controls"
+  }
+}

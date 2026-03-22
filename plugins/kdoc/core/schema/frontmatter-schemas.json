@@ -1,0 +1,51 @@
+{
+  "description": "Frontmatter field definitions per document type. Consumed by kdoc doctor and governance scripts.",
+  "version": "1",
+  "types": {
+    "adr": {
+      "required": ["type", "id", "status", "date", "summary"],
+      "optional": ["superseded-by", "supersedes", "open-questions-status", "linear", "tags"],
+      "status_values": ["proposed", "accepted", "deprecated", "superseded"],
+      "id_pattern": "^ADR-\\d{4}$"
+    },
+    "feature": {
+      "required": ["type", "area", "id", "status", "summary"],
+      "optional": ["linear", "tags", "module_path", "package_path", "core_paths", "api_paths"],
+      "status_values": ["draft", "in_progress", "ready", "done", "blocked"],
+      "gap_tracking_tags": [
+        "has-open-questions",
+        "missing-test-scenarios",
+        "missing-acceptance-criteria",
+        "blocked-by-decision"
+      ]
+    },
+    "phase": {
+      "required": ["type", "area", "id", "status", "summary"],
+      "optional": ["depends_on", "last_reviewed", "sub_phases", "work_units_total", "next_work_units", "tags"],
+      "status_values": ["pending", "in-progress", "completed", "completed_with_notes"]
+    },
+    "sub-phase": {
+      "required": ["type", "area", "id", "parent_phase", "status", "summary"],
+      "optional": ["blocked_by", "parallel_with", "tags"],
+      "status_values": ["pending", "in-progress", "completed"]
+    },
+    "runbook": {
+      "required": ["type", "status", "summary"],
+      "optional": ["owner", "linear", "tags"],
+      "status_values": ["draft", "active", "deprecated"]
+    },
+    "threat-model": {
+      "required": ["type", "area", "id", "status", "summary"],
+      "optional": ["linear", "tags"],
+      "status_values": ["draft", "reviewed", "approved"]
+    },
+    "reference": {
+      "required": ["type", "area", "id", "status", "summary"],
+      "optional": ["linear", "tags"]
+    },
+    "index": {
+      "required": ["type", "area", "id", "status", "summary"],
+      "optional": ["linear", "tags"]
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "swift-ios",
+  "displayName": "Swift / iOS",
+  "description": "Knowledge pack for Swift/iOS projects using UIKit, SwiftUI, or hybrid apps. Adds screen specs, navigation flow templates, API client contracts, SPM module guidance, Apple HIG design standards, and VoiceOver/Dynamic Type accessibility checklists.",
+  "detect": {
+    "files": ["Package.swift", "*.xcodeproj", "*.xcworkspace"],
+    "dependencies": [],
+    "packageManager": ["spm", "cocoapods"]
+  },
+  "defaults": {
+    "scopes": ["App", "Shared"],
+    "enforced-paths": [
+      "Sources/*/Modules/",
+      "Sources/*/Core/",
+      "Packages/*/Sources/"
+    ],
+    "scripts-prefix": "kdoc",
+    "scripts-runner": "make"
+  },
+  "areas": {
+    "design": {
+      "token-format": "ios-semantic",
+      "scope-axis": "inner"
+    }
+  }
+}

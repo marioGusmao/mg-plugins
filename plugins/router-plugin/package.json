@@ -1,0 +1,22 @@
+{
+  "name": "router-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reusable router protocol pack for repositories that consume inbox packets or author packets for delivery",
+  "type": "module",
+  "bin": {
+    "router-plugin": "./src/cli.js"
+  },
+  "scripts": {
+    "lint": "node --check src/cli.js && node --check src/core/certify.js && node --check src/core/report.js && node --check src/core/scaffold.js",
+    "test": "node --test"
+  },
+  "files": [
+    "src/",
+    "docs/",
+    "skills/",
+    "templates/"
+  ],
+  "author": "MRM",
+  "license": "MIT"
+}

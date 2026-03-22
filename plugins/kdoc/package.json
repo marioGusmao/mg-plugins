@@ -1,0 +1,15 @@
+{
+  "name": "kdoc",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Knowledge documentation toolkit — scaffold, maintain, and govern project documentation structures",
+  "type": "module",
+  "scripts": {
+    "build": "cd cli && pnpm build",
+    "test": "cd cli && pnpm test",
+    "lint": "cd cli && pnpm lint",
+    "typecheck": "cd cli && pnpm typecheck"
+  },
+  "author": "MRM",
+  "license": "MIT"
+}

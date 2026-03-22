@@ -1,7 +1,7 @@
 {
   "name": "kdoc",
   "description": "Knowledge documentation toolkit — scaffold, maintain, and govern project documentation structures",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "MRM"
   },
@@ -11,6 +11,5 @@
     "./agents/claude-code/knowledge-auditor.md",
     "./agents/claude-code/roadmap-builder.md",
     "./agents/claude-code/tldr-sync-checker.md"
-  ],
-  "hooks": "./hooks/hooks.json"
+  ]
 }

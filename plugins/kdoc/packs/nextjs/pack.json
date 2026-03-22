@@ -1,0 +1,26 @@
+{
+  "name": "nextjs",
+  "displayName": "Next.js",
+  "description": "Next.js / React pack — page specs, route contracts, modular architecture templates, and design standards.",
+  "detect": {
+    "files": ["next.config.ts", "next.config.js", "next.config.mjs"],
+    "dependencies": ["next"],
+    "packageManager": ["pnpm", "npm", "yarn"]
+  },
+  "defaults": {
+    "scopes": ["Admin", "Shop", "Shared"],
+    "enforced-paths": [
+      "apps/*/src/modules/",
+      "apps/*/src/core/",
+      "apps/*/src/app/api/",
+      "packages/*/src/"
+    ],
+    "scripts-prefix": "kdoc",
+    "scripts-runner": "pnpm"
+  },
+  "areas": {
+    "design": {
+      "subfolders": ["tokens", "standards"]
+    }
+  }
+}

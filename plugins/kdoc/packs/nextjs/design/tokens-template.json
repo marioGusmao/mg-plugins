@@ -1,0 +1,87 @@
+{
+  "$schema": "https://tr.designtokens.org/format/",
+  "$description": "Design tokens for {{PROJECT_NAME}}. Edit values to match your brand. Token names follow DTCG format ($value, $type, $description).",
+  "color": {
+    "brand": {
+      "primary": {
+        "$value": "#7C3AED",
+        "$type": "color",
+        "$description": "Primary brand color — CTAs, links, active states"
+      },
+      "secondary": {
+        "$value": "#A78BFA",
+        "$type": "color",
+        "$description": "Secondary brand color — accents, highlights"
+      },
+      "accent": {
+        "$value": "#FF6D5A",
+        "$type": "color",
+        "$description": "Accent — badges, promotions, attention elements"
+      }
+    },
+    "semantic": {
+      "success": { "$value": "#16A34A", "$type": "color", "$description": "Success states" },
+      "warning": { "$value": "#EAB308", "$type": "color", "$description": "Warning states" },
+      "error":   { "$value": "#DC2626", "$type": "color", "$description": "Error states" },
+      "info":    { "$value": "#0EA5E9", "$type": "color", "$description": "Informational states" }
+    },
+    "neutral": {
+      "gray-50":  { "$value": "#F9FAFB", "$type": "color" },
+      "gray-100": { "$value": "#F3F4F6", "$type": "color" },
+      "gray-200": { "$value": "#E5E7EB", "$type": "color" },
+      "gray-400": { "$value": "#9CA3AF", "$type": "color" },
+      "gray-700": { "$value": "#374151", "$type": "color" },
+      "gray-900": { "$value": "#111827", "$type": "color" }
+    }
+  },
+  "spacing": {
+    "1":  { "$value": "4px",   "$type": "dimension" },
+    "2":  { "$value": "8px",   "$type": "dimension" },
+    "4":  { "$value": "16px",  "$type": "dimension" },
+    "6":  { "$value": "24px",  "$type": "dimension" },
+    "8":  { "$value": "32px",  "$type": "dimension" },
+    "12": { "$value": "48px",  "$type": "dimension" },
+    "16": { "$value": "64px",  "$type": "dimension" },
+    "20": { "$value": "80px",  "$type": "dimension" }
+  },
+  "typography": {
+    "fontFamily": {
+      "sans": { "$value": "Inter, ui-sans-serif, system-ui, sans-serif", "$type": "fontFamily" },
+      "mono": { "$value": "ui-monospace, SFMono-Regular, monospace", "$type": "fontFamily" }
+    },
+    "fontSize": {
+      "xs":  { "$value": "12px", "$type": "dimension" },
+      "sm":  { "$value": "14px", "$type": "dimension" },
+      "base":{ "$value": "16px", "$type": "dimension" },
+      "lg":  { "$value": "18px", "$type": "dimension" },
+      "xl":  { "$value": "20px", "$type": "dimension" },
+      "2xl": { "$value": "24px", "$type": "dimension" },
+      "4xl": { "$value": "36px", "$type": "dimension" },
+      "6xl": { "$value": "60px", "$type": "dimension" }
+    },
+    "fontWeight": {
+      "regular":  { "$value": "400", "$type": "fontWeight" },
+      "medium":   { "$value": "500", "$type": "fontWeight" },
+      "semibold": { "$value": "600", "$type": "fontWeight" },
+      "bold":     { "$value": "700", "$type": "fontWeight" }
+    }
+  },
+  "borderRadius": {
+    "sm":   { "$value": "4px",    "$type": "dimension" },
+    "md":   { "$value": "8px",    "$type": "dimension" },
+    "lg":   { "$value": "12px",   "$type": "dimension" },
+    "full": { "$value": "9999px", "$type": "dimension" }
+  },
+  "shadow": {
+    "sm": { "$value": "0 1px 2px 0 rgba(0,0,0,0.05)", "$type": "shadow" },
+    "md": { "$value": "0 4px 6px -1px rgba(0,0,0,0.1)", "$type": "shadow" },
+    "lg": { "$value": "0 10px 15px -3px rgba(0,0,0,0.1)", "$type": "shadow" }
+  },
+  "breakpoint": {
+    "sm":  { "$value": "640px",  "$type": "dimension", "$description": "Small — large phones in landscape" },
+    "md":  { "$value": "768px",  "$type": "dimension", "$description": "Medium — tablets portrait, 2-column layouts" },
+    "lg":  { "$value": "1024px", "$type": "dimension", "$description": "Large — laptops, full multi-column" },
+    "xl":  { "$value": "1280px", "$type": "dimension", "$description": "Extra large — standard desktops" },
+    "2xl": { "$value": "1536px", "$type": "dimension", "$description": "2x large — wide monitors" }
+  }
+}
