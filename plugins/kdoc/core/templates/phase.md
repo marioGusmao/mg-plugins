@@ -1,9 +1,17 @@
 ---
+title: "{{TITLE}}"
 type: phase
 area: Project
 id: phase-N
-status: pending|in-progress|completed
+status: pending
+date: {{DATE}}
+scope: {{SCOPE}}
+intent: ""
+aliases: ["{{TITLE}}"]
 depends_on: [phase-X, phase-Y]
+parallel_with: []
+acceptance_criteria: []
+affected_routes: []
 last_reviewed: YYYY-MM-DD
 sub_phases: ['N.1', 'N.2', 'N.3']
 work_units_total: 3
@@ -14,11 +22,15 @@ tags:
 summary: <one-line phase goal>
 ---
 
-# Phase N — <Phase Name>
+# Phase N — {{TITLE}}
 
 > **Status:** pending
 > **Depends on:** [[{{KNOWLEDGE_ROOT}}/Roadmap/phases/<phase-file>]] _(replace with actual wikilink)_
 > **Goal:** <2-3 sentences>
+
+## Why
+
+> Why is this phase in this order? What value does completing it unlock for later work?
 
 See [[Roadmap/README]] for cross-phase concerns, design principles, and registries.
 
@@ -54,6 +66,12 @@ N.1 || N.2
 ## Phase Gate
 
 <aggregated exit criteria for the whole phase>
+
+## Acceptance Criteria
+
+| # | Criterion | Status | Evidence |
+| - | --------- | ------ | -------- |
+| 1 | | pending | |
 
 ## Phase-Level Notes
 

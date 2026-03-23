@@ -1,17 +1,26 @@
 ---
+title: "{{TITLE}}"
 type: threat-model
-area: <Area>
-id: tm-<module>
+area: {{AREA}}
+id: tm-{{NAME}}
 status: draft
+date: {{DATE}}
+scope: {{SCOPE}}
 tags: [security, threat-model]
+aliases: ["{{TITLE}}"]
+intent: ""
 summary: ''
 ---
 
-# Threat Model - <Module Name>
+# Threat Model — {{TITLE}}
+
+## Why
+
+<!-- Why is this system worth threat-modeling now? What asset, trust boundary, or change increased security risk? -->
 
 ## Scope
 
-<!-- Module name, data flows involved, external interfaces -->
+<!-- Module name, data flows involved, external interfaces. -->
 
 ## STRIDE Analysis
 
@@ -19,15 +28,15 @@ summary: ''
 | ------ | -------- | ---------- | ------ | ---------- | ------ |
 |        |          |            |        |            |        |
 
-<!-- Status: Identified, Mitigated, Accepted (with justification), Deferred (with linked issue) -->
+<!-- Status: Identified, Mitigated, Accepted (with justification), Deferred (with linked issue). -->
 
 ## Attack Surface
 
-<!-- External interfaces, user input points, file uploads, API endpoints -->
+<!-- External interfaces, user input points, file uploads, API endpoints. -->
 
 ## Residual Risks
 
-<!-- Risks accepted with justification -->
+<!-- Risks accepted with justification. -->
 
 ## Review History
 
@@ -35,6 +44,7 @@ summary: ''
 | ---- | -------- | ------- |
 |      |          |         |
 
-## Related links
+## Related
 
-<!-- Wikilinks to TLDR, ADRs, register -->
+- <!-- [[TLDR/relevant-feature]] -->
+- <!-- [[ADR/ADR-NNNN-security-decision]] -->

@@ -16,7 +16,7 @@
     {
       "name": "claude-utils",
       "description": "Essential utilities for Claude Code — cross-platform notifications, orphaned process cleanup, and git context injection",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "source": "./plugins/claude-utils",
       "category": "development",
       "keywords": ["utilities", "notifications", "cleanup", "git-context", "session-management"]
@@ -24,7 +24,7 @@
     {
       "name": "codegraph",
       "description": "Code intelligence plugin — call-chain analysis, blast radius, dependency graph queries, and codebase briefings via MCP. Hybrid indexing with Tree-sitter + TypeScript LanguageService.",
-      "version": "1.0.3",
+      "version": "1.1.1",
       "source": "./plugins/codegraph",
       "category": "development",
       "keywords": ["code-intelligence", "call-graph", "blast-radius", "mcp", "tree-sitter", "typescript", "static-analysis"]
@@ -32,7 +32,7 @@
     {
       "name": "kdoc",
       "description": "Knowledge documentation toolkit — scaffold, maintain, and govern project documentation structures",
-      "version": "1.0.3",
+      "version": "1.0.5",
       "source": "./plugins/kdoc",
       "category": "development",
       "keywords": []
@@ -40,7 +40,7 @@
     {
       "name": "router-plugin",
       "description": "Protocol pack — certify and scaffold router contracts for inter-agent communication",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "source": "./plugins/router-plugin",
       "category": "development",
       "keywords": ["router", "protocol", "certification", "scaffold", "inter-agent"]

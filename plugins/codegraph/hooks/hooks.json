@@ -46,12 +46,12 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Edit|Write",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/check-staleness.mjs\"",
-            "timeout": 5000
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/post-bash-reindex.mjs\"",
+            "timeout": 15000
           }
         ]
       }

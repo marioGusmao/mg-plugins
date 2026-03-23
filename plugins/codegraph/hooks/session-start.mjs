@@ -23,6 +23,21 @@ if (!fs.existsSync(cliPath)) {
   process.exit(0);
 }
 
+// Check 1b: Can better-sqlite3 native module load? (ABI mismatch detection)
+try {
+  execFileSync('node', ['-e', 'require("better-sqlite3")'], {
+    cwd: pluginRoot,
+    timeout: 5000,
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+} catch {
+  console.log(
+    `[CodeGraph] Native module ABI mismatch. Run:\n` +
+    `  cd "${pluginRoot}" && npm rebuild better-sqlite3`
+  );
+  process.exit(0);
+}
+
 // Check 2: Does the current project have source files worth indexing?
 const hasSourceFiles = fs.existsSync(path.join(projectDir, 'tsconfig.json')) ||
   fs.existsSync(path.join(projectDir, 'package.json'));

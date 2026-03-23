@@ -1,20 +1,29 @@
 ---
+title: "{{TITLE}}"
 type: guide
 area: Guides
 id: guide-<slug>
 status: draft
+date: {{DATE}}
+scope: {{SCOPE}}
 tags: []
+aliases: ["{{TITLE}}"]
+intent: ""
 summary: ''
 ---
 
-# Guide — <Title>
+# Guide — {{TITLE}}
 
 > **Purpose:** <one-line description of what this guide covers>
 > **Audience:** <who should read this>
 
+## Why
+
+<!-- Why does this guide exist? What decision, workflow, or failure pattern makes it necessary? -->
+
 ## Overview
 
-<!-- 2-4 lines: what this guide covers and why it exists -->
+<!-- 2-4 lines: what this guide covers and what outcome it enables. -->
 
 ## Prerequisites
 
@@ -32,6 +41,7 @@ summary: ''
 | ------- | ------------ | --- |
 |         |              |     |
 
-## Related links
+## Related
 
--
+- <!-- [[runbooks/relevant-runbook]] -->
+- <!-- [[ADR/ADR-NNNN-relevant-decision]] -->

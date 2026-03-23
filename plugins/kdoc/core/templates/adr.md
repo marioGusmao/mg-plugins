@@ -1,42 +1,57 @@
 ---
+title: "{{TITLE}}"
 type: adr
-id: ADR-000X
+id: ADR-{{NUMBER}}
 status: proposed
-date: YYYY-MM-DD
-superseded-by: ''
+date: {{DATE}}
+scope: {{SCOPE}}
 tags: []
-summary: ''
+aliases: ["ADR-{{NUMBER}}"]
+intent: ""
+superseded_by: ""
+decision_makers: []
+summary: ""
 ---
 
-# ADR-000X - <Short Title>
+# ADR-{{NUMBER}} — {{TITLE}}
+
+## Why
+
+> What motivated this decision? What problem or opportunity triggered it?
+> This section is mandatory. A decision without rationale is fragile and easy to reverse.
 
 ## Context
 
-<!-- What problem are we solving? -->
+<!-- Describe the forces at play: business requirements, technical constraints, team capabilities. -->
 
 ## Decision Drivers
 
-<!-- What forces, constraints, or requirements shaped this decision? -->
+- <!-- Driver 1 -->
+- <!-- Driver 2 -->
 
 ## Decision
 
-<!-- What was decided? -->
+<!-- State the decision clearly and unambiguously. -->
 
-## Alternatives considered
+## Alternatives Considered
 
-- Option A —
-- Option B —
+| Option | Pros | Cons | Why Not Chosen |
+| ------ | ---- | ---- | -------------- |
+| <!-- Option A --> | | | |
+| <!-- Option B --> | | | |
 
 ## Consequences
 
-### Positive
+| Type | Description | Mitigation |
+| ---- | ----------- | ---------- |
+| Positive | | — |
+| Trade-off | | |
 
--
+## Validation
 
-### Trade-offs
+<!-- How will compliance with this decision be verified? Code review, tests, linting, or architecture checks. -->
 
--
+## Related
 
-## Related modules
-
-- [[<path-to-related-tldr>|<Module Name>]]
+- <!-- [[TLDR/relevant-feature]] -->
+- <!-- [[ADR/ADR-NNNN-related-decision]] -->

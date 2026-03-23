@@ -42,6 +42,11 @@ if (!filePath || !oldString) {
   process.exit(0);
 }
 
+// Skip blast-gate on very large edits — regex would be too slow
+if (oldString.length > 10000) {
+  process.exit(0);
+}
+
 // --- Setup paths ---
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || path.resolve(__dirname, '..');
@@ -56,8 +61,8 @@ if (!fs.existsSync(cliPath) || !fs.existsSync(dbPath)) {
 // --- Extract symbol names from the edit ---
 const symbolPatterns = [
   /\bfunction\s+(\w+)\s*\(/g,
-  /\b(?:async\s+)?(\w+)\s*\([^)]*\)\s*[:{]/g,
-  /\b(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\(/g,
+  /\b(?:async\s+)?(\w+)\s*\(/g,
+  /\b(?:const|let|var)\s+(\w+)\s*=/g,
   /\bclass\s+(\w+)/g,
   /\bexport\s+(?:default\s+)?(?:function|const|let|var|class)\s+(\w+)/g,
   /\b(?:type|interface)\s+(\w+)/g,
@@ -164,4 +169,7 @@ if (totalDocRefs > 0) {
 lines.push('');
 lines.push('Review these call sites after applying the edit to ensure they still work correctly.');
 
-console.log(lines.join('\n'));
+console.log(JSON.stringify({
+  result: 'warn',
+  message: lines.join('\n'),
+}));

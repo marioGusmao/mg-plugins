@@ -1,70 +1,67 @@
 ---
+title: "{{TITLE}}"
 type: feature
-area: <Area>
-id: tldr-<area>-<feature>
+area: {{AREA}}
+id: tldr-{{AREA}}-{{NAME}}
 status: draft
+date: {{DATE}}
+scope: {{SCOPE}}
 tags: []
-# Gap-tracking tags (add to tags list as needed):
-#   has-open-questions — file has unresolved Open Questions
-#   missing-test-scenarios — Test Scenarios table is empty
-#   missing-acceptance-criteria — Acceptance Criteria is empty
-#   blocked-by-decision — an open question blocks implementation
-summary: ''
+aliases: ["{{TITLE}}"]
+intent: ""
+module_path: ""
+security_tier: standard
+summary: ""
 ---
 
-# <Feature Name>
+# {{TITLE}}
+
+## Why
+
+> Why does this feature exist? What user need or business goal does it serve?
+> Without this section, the feature can be deprioritized without understanding the impact.
 
 ## Description
 
-<!-- 3-6 lines: what it does and for whom -->
+<!-- What this feature does, who uses it, and what value it provides. -->
 
 ## Requirements
 
-- [ ]
+| # | Requirement | Priority | Status |
+| - | ----------- | -------- | ------ |
+| 1 | | must | pending |
 
 ## Test Scenarios
 
-<!-- What should be tested for this feature? List key scenarios per test level. -->
-<!-- Remove this section only if the feature has no testable behavior. -->
-
 | Scenario | Test level | Notes |
 | -------- | ---------- | ----- |
-|          | Unit       |       |
-|          | Integration|       |
-|          | E2E        |       |
+|          | unit       |       |
+|          | integration |      |
+|          | e2e        |       |
 
 ## Acceptance Criteria
 
-<!-- Measurable conditions that must be true for this feature to be complete. -->
-
-- [ ]
+- [ ] <!-- AC-1 -->
 
 ## Non-Goals
 
-<!-- What is explicitly out of scope for this feature? -->
+- <!-- Non-goal 1 -->
 
 ## Dependencies
 
--
+| Dependency | Type | Status |
+| ---------- | ---- | ------ |
+| <!-- [[ADR/ADR-NNNN]] --> | decision | |
 
-## Used by
+## Used By
 
--
+- <!-- [[Roadmap/phases/phase-N/N.X]] -->
 
 ## Open Questions
 
--
+- <!-- Tracked with `has-open-questions` gap tag. -->
 
-## Related ADRs
+## Related
 
--
-
-## Readiness Checklist
-
-<!-- All items must be checked to promote status from draft → ready -->
-
-- [ ] Data model / schema reviewed (or marked N/A)
-- [ ] API contract section reviewed (or marked N/A)
-- [ ] Dependencies confirmed
-- [ ] Test scenarios filled (not empty)
-- [ ] Acceptance criteria filled (not empty)
+- <!-- [[ADR/ADR-NNNN-relevant]] -->
+- <!-- [[Roadmap/phases/phase-N/N.X]] -->

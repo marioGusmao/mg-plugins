@@ -1,0 +1,6 @@
+interface:
+  display_name: "CodeGraph"
+  short_description: "Call-chain analysis, blast radius, and dependency graph queries for code intelligence"
+
+policy:
+  allow_implicit_invocation: true

@@ -1,22 +1,55 @@
-# ContextPack — Quick Start for Agents
+---
+title: "ContextPack — {{PROJECT_NAME}}"
+type: context-pack
+status: generated
+date: {{DATE}}
+scope: {{SCOPE}}
+tags: [ai-context, generated]
+aliases: ["ContextPack"]
+intent: "Provide a compact, high-signal entry point for AI agents working in this Knowledge base."
+summary: ""
+---
+
+# ContextPack — {{PROJECT_NAME}}
 
 > Goal: provide enough context to work on {{PROJECT_NAME}} without opening many files first.
 >
 > **Knowledge root:** `{{KNOWLEDGE_ROOT}}/` — all wikilinks resolve relative to this directory.
 
-## Where information lives
+## Why
 
-<!-- Customize these entries for your project's actual Knowledge structure. -->
-<!-- Remove areas that are not installed. Add project-specific entries. -->
+> Use this file to start fast. It should answer where the important knowledge lives, what is active now, and which documents to read next.
 
-- Feature requirements: `TLDR/**`
-- Decisions: `ADR/**`
-- Roadmap: `Roadmap/`
-- Guides: `Guides/`
-- Runbooks: `runbooks/`
-- Agent memory: `AgentMemory/`
+## Knowledge Map
 
-## Recommended agent startup flow
+| Area | Files | Key Documents |
+| ---- | ----- | ------------- |
+| TLDR | `TLDR/**` | <!-- [[TLDR/README]] --> |
+| ADR | `ADR/**` | <!-- [[ADR/README]] --> |
+| Roadmap | `Roadmap/**` | <!-- [[Roadmap/README]] --> |
+| Guides | `Guides/**` | <!-- [[Guides/README]] --> |
+| Runbooks | `runbooks/**` | <!-- [[runbooks/README]] --> |
+| Agent Memory | `AgentMemory/**` | <!-- [[AgentMemory/MEMORY]] --> |
+
+## Recent Decisions
+
+| ADR | Status | Why It Matters |
+| --- | ------ | -------------- |
+| <!-- [[ADR/ADR-NNNN-name]] --> | proposed | |
+
+## Active Features
+
+| TLDR | Status | Scope |
+| ---- | ------ | ----- |
+| <!-- [[TLDR/feature-name]] --> | in_progress | root |
+
+## Roadmap Status
+
+| Current Phase | Next Unblocked | Blocking Decision |
+| ------------- | -------------- | ----------------- |
+| <!-- [[Roadmap/phases/phase-N]] --> | <!-- [[Roadmap/phases/phase-N/N.X]] --> | <!-- [[ADR/ADR-NNNN]] --> |
+
+## Recommended Agent Startup Flow
 
 1. Read this file.
 2. Read `AgentMemory/MEMORY.md` (if agent-memory area is installed).
@@ -26,7 +59,7 @@
 6. If the change is structural, review ADRs before writing.
 7. If encountering errors, consult `Guides/TROUBLESHOOTING.md` (if guides area is installed).
 
-## Authoring standards
+## Authoring Standards
 
 - One TLDR file = one feature.
 - Keep docs implementation-agnostic.
@@ -34,7 +67,7 @@
 - Keep frontmatter up to date.
 - Every feature file must include all standard sections.
 
-## Fast update checklist
+## Fast Update Checklist
 
 - [ ] Requirements updated
 - [ ] Dependencies and Used by sections reviewed

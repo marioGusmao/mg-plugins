@@ -1,7 +1,7 @@
 {
   "name": "codegraph",
   "description": "Code intelligence plugin — call-chain analysis, blast radius, dependency graph queries, and codebase briefings via MCP. Hybrid indexing with Tree-sitter + TypeScript LanguageService.",
-  "version": "1.0.3",
+  "version": "1.1.1",
   "author": {
     "name": "MRM"
   },

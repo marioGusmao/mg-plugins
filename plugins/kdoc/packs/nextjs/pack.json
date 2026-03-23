@@ -22,5 +22,11 @@
     "design": {
       "subfolders": ["tokens", "standards"]
     }
+  },
+  "roadmap": {
+    "enabled": true,
+    "description": "Next.js starter roadmap: auth → data layer → UI shell → deployment",
+    "defaultPhases": ["foundation", "data-layer", "ui-shell", "features", "deployment"],
+    "subPhaseFields": ["module_path", "affected_routes", "security_tier", "app"]
   }
 }

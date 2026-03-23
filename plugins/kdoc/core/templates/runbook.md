@@ -1,12 +1,21 @@
 ---
+title: "{{TITLE}}"
 type: runbook
 status: draft
+date: {{DATE}}
+scope: {{SCOPE}}
 owner: ''
 tags: []
+aliases: ["{{TITLE}}"]
+intent: ""
 summary: ''
 ---
 
-# Runbook - <Title>
+# Runbook — {{TITLE}}
+
+## Why
+
+<!-- Why does this operational procedure exist? What incident, recurring task, or risk does it address? -->
 
 ## Objective
 
@@ -23,8 +32,9 @@ summary: ''
 
 ## Rollback
 
--
+- <!-- How to safely revert or stop the procedure if it goes wrong. -->
 
-## Related links
+## Related
 
--
+- <!-- [[Guides/relevant-guide]] -->
+- <!-- [[ADR/ADR-NNNN-relevant-decision]] -->

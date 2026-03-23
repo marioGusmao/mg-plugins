@@ -22,5 +22,11 @@
       "token-format": "ios-semantic",
       "scope-axis": "inner"
     }
+  },
+  "roadmap": {
+    "enabled": true,
+    "description": "iOS starter roadmap: project setup → core architecture → UI screens → integrations → release",
+    "defaultPhases": ["project-setup", "core-architecture", "ui-screens", "integrations", "release"],
+    "subPhaseFields": ["module_path", "security_tier"]
   }
 }
