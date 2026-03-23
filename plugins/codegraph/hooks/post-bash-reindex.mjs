@@ -26,7 +26,7 @@ try {
 
 // Patterns that change the working tree and warrant re-indexing
 const reindexTriggers = [
-  /\bgit\s+(pull|merge|rebase|checkout|switch|cherry-pick)\b/,
+  /\bgit\s+(pull|merge|rebase|checkout|switch|cherry-pick|reset|restore)\b/,
   /\b(npm|pnpm|yarn)\s+install\b/,
   /\bgit\s+stash\s+(pop|apply)\b/,
 ];

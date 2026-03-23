@@ -11,8 +11,8 @@ export function registerIndexCmd(program) {
         const projectRoot = path.resolve(options.project);
         const incremental = options.incremental;
         console.log(`Indexing ${projectRoot}${incremental ? ' (incremental)' : ''}…`);
+        const indexer = new Indexer(projectRoot);
         try {
-            const indexer = new Indexer(projectRoot);
             const stats = indexer.index({ incremental });
             console.log('');
             console.log('Index complete:');
@@ -29,6 +29,9 @@ export function registerIndexCmd(program) {
             const message = err instanceof Error ? err.message : String(err);
             console.error(`Error: ${message}`);
             process.exit(1);
+        }
+        finally {
+            indexer.close();
         }
     });
 }

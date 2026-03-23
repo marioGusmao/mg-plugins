@@ -24,6 +24,23 @@ if [[ -n "${TMUX:-}" ]]; then
   fi
 fi
 
+# Suppress notifications for workshop AGENT tabs only.
+# Agent windows: "claude", "codex", "advisor", "analysis" (or "claude:task-name" etc.)
+# Orchestrator tabs ("orch", or any other name) ALWAYS notify — they are user-facing.
+# Manual sessions (no tmux or unknown window names) ALWAYS notify.
+if [[ -n "$TMUX_WINDOW" ]]; then
+  WINDOW_BASE="${TMUX_WINDOW%%:*}"  # "claude:blind-plan" → "claude"
+  case "$WINDOW_BASE" in
+    claude|codex|advisor|analysis)
+      # Workshop agent tab — suppress notification (autopilot handles these)
+      exit 0
+      ;;
+    orch)
+      # Orchestrator tab — ALWAYS notify
+      ;;
+  esac
+fi
+
 # Build title and subtitle
 if [[ -n "$TMUX_SESSION" ]]; then
   TITLE="Claude [$TMUX_SESSION:$TMUX_WINDOW]"

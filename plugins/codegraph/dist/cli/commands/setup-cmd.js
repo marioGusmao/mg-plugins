@@ -102,27 +102,23 @@ Run \`codegraph index --incremental\` after pulling changes or making edits. Tak
 function setupMcpConfig(projectDir, relPath) {
     const configPath = path.join(projectDir, relPath);
     const configDir = path.dirname(configPath);
-    const mcpEntry = {
-        codegraph: {
-            type: 'stdio',
-            command: 'npx',
-            args: ['codegraph', 'mcp'],
-        },
+    const serverEntry = {
+        type: 'stdio',
+        command: 'npx',
+        args: ['codegraph', 'mcp'],
     };
     if (fs.existsSync(configPath)) {
         try {
             const existing = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-            if (existing.codegraph || existing.mcpServers?.codegraph) {
+            if (existing.mcpServers?.codegraph) {
                 console.log(`  ${relPath} — CodeGraph already configured — skipping`);
                 return;
             }
-            // Merge into existing config
-            if (existing.mcpServers) {
-                existing.mcpServers.codegraph = mcpEntry.codegraph;
+            // Always merge under mcpServers
+            if (!existing.mcpServers) {
+                existing.mcpServers = {};
             }
-            else {
-                Object.assign(existing, mcpEntry);
-            }
+            existing.mcpServers.codegraph = serverEntry;
             fs.writeFileSync(configPath, JSON.stringify(existing, null, 2) + '\n');
             console.log(`  ${relPath} — added CodeGraph MCP server`);
         }
@@ -132,7 +128,8 @@ function setupMcpConfig(projectDir, relPath) {
     }
     else {
         fs.mkdirSync(configDir, { recursive: true });
-        fs.writeFileSync(configPath, JSON.stringify(mcpEntry, null, 2) + '\n');
+        const config = { mcpServers: { codegraph: serverEntry } };
+        fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
         console.log(`  ${relPath} — created with CodeGraph MCP server`);
     }
 }

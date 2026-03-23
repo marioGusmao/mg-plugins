@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import ts from 'typescript';
 // Node.js built-in module names (without node: prefix).
 // This list is used to detect bare built-in specifiers like 'fs', 'path', etc.
 const NODE_BUILTINS = new Set([
@@ -24,7 +25,7 @@ export class Resolver {
     tsPaths;
     workspacePackages;
     constructor(projectRoot) {
-        this.projectRoot = projectRoot;
+        this.projectRoot = this.normalizePath(path.resolve(projectRoot));
         this.tsPaths = this.loadTsConfigPaths();
         this.workspacePackages = this.loadWorkspacePackages();
     }
@@ -64,18 +65,21 @@ export class Resolver {
      */
     resolveExportChain(symbolName, filePath, depth = 5) {
         const absFilePath = path.isAbsolute(filePath)
-            ? filePath
+            ? this.normalizePath(filePath)
             : path.join(this.projectRoot, filePath);
         return this.followExportChain(symbolName, absFilePath, depth);
     }
     // ── Private helpers ────────────────────────────────────────────────────────
     resolveRelative(importSource, importerFilePath) {
-        const importerDir = path.dirname(importerFilePath);
+        const normalizedImporter = path.isAbsolute(importerFilePath)
+            ? this.normalizePath(importerFilePath)
+            : path.join(this.projectRoot, importerFilePath);
+        const importerDir = path.dirname(normalizedImporter);
         const candidateBase = path.resolve(importerDir, importSource);
         const resolved = this.tryExtensions(candidateBase);
         if (resolved === null)
             return null;
-        return path.relative(this.projectRoot, resolved);
+        return this.toProjectRelative(resolved);
     }
     resolveTsConfigPath(importSource) {
         const { baseUrl, paths } = this.tsPaths;
@@ -89,10 +93,11 @@ export class Resolver {
                 const expandedReplacement = replacement.includes('*')
                     ? replacement.replace('*', matched)
                     : replacement;
-                const candidateBase = path.join(this.projectRoot, baseUrl, expandedReplacement);
+                const baseDir = path.isAbsolute(baseUrl) ? baseUrl : path.join(this.projectRoot, baseUrl);
+                const candidateBase = path.join(baseDir, expandedReplacement);
                 const resolved = this.tryExtensions(candidateBase);
                 if (resolved !== null) {
-                    return path.relative(this.projectRoot, resolved);
+                    return this.toProjectRelative(resolved);
                 }
             }
         }
@@ -113,7 +118,7 @@ export class Resolver {
                     const mainAbs = path.join(absPkgRoot, mainField);
                     const resolved = this.tryExtensions(mainAbs);
                     if (resolved !== null) {
-                        return path.relative(this.projectRoot, resolved);
+                        return this.toProjectRelative(resolved);
                     }
                 }
             }
@@ -129,7 +134,7 @@ export class Resolver {
         for (const candidate of candidates) {
             const resolved = this.tryExtensions(candidate);
             if (resolved !== null) {
-                return path.relative(this.projectRoot, resolved);
+                return this.toProjectRelative(resolved);
             }
         }
         return null;
@@ -177,7 +182,7 @@ export class Resolver {
                         }
                     }
                     if (isSymbolDefined(localName, nextSource)) {
-                        return path.relative(this.projectRoot, nextFile);
+                        return this.toProjectRelative(nextFile);
                     }
                     // Not defined directly — recurse
                     const deeper = this.followExportChain(localName, nextFile, remainingDepth - 1);
@@ -207,17 +212,26 @@ export class Resolver {
     tryExtensions(base) {
         const extensions = ['.ts', '.tsx', '.js', '.jsx', '.mts', '.cts', '.mjs', '.cjs'];
         if (fs.existsSync(base) && fs.statSync(base).isFile()) {
-            return base;
+            return this.normalizePath(base);
+        }
+        // TypeScript ESM: imports use .js/.jsx but source files are .ts/.tsx
+        const jsToTsMap = { '.js': '.ts', '.jsx': '.tsx', '.mjs': '.mts', '.cjs': '.cts' };
+        const baseExt = path.extname(base);
+        const tsExt = jsToTsMap[baseExt];
+        if (tsExt) {
+            const candidate = base.slice(0, -baseExt.length) + tsExt;
+            if (fs.existsSync(candidate))
+                return this.normalizePath(candidate);
         }
         for (const ext of extensions) {
             const candidate = base + ext;
             if (fs.existsSync(candidate))
-                return candidate;
+                return this.normalizePath(candidate);
         }
         for (const ext of extensions) {
             const candidate = path.join(base, `index${ext}`);
             if (fs.existsSync(candidate))
-                return candidate;
+                return this.normalizePath(candidate);
         }
         return null;
     }
@@ -228,50 +242,21 @@ export class Resolver {
         if (!fs.existsSync(tsConfigPath))
             return result;
         try {
-            const loaded = this.readTsConfig(tsConfigPath, new Set());
-            if (loaded.compilerOptions?.baseUrl) {
-                result.baseUrl = loaded.compilerOptions.baseUrl;
+            const parsed = ts.getParsedCommandLineOfConfigFile(tsConfigPath, {}, {
+                ...ts.sys,
+                onUnRecoverableConfigFileDiagnostic: () => { },
+            });
+            if (parsed?.options.baseUrl) {
+                result.baseUrl = parsed.options.baseUrl;
             }
-            if (loaded.compilerOptions?.paths) {
-                result.paths = loaded.compilerOptions.paths;
+            if (parsed?.options.paths) {
+                result.paths = parsed.options.paths;
             }
         }
         catch {
             // Malformed tsconfig — return empty
         }
         return result;
-    }
-    /**
-     * Reads a tsconfig.json, resolving `extends` chains recursively.
-     * Child compilerOptions override parent.
-     */
-    readTsConfig(tsConfigPath, visited) {
-        const abs = path.resolve(tsConfigPath);
-        if (visited.has(abs))
-            return {};
-        visited.add(abs);
-        if (!fs.existsSync(abs))
-            return {};
-        let raw;
-        try {
-            raw = JSON.parse(fs.readFileSync(abs, 'utf8'));
-        }
-        catch {
-            return {};
-        }
-        const dir = path.dirname(abs);
-        let parentOptions = {};
-        if (raw.extends) {
-            const extendsArray = Array.isArray(raw.extends) ? raw.extends : [raw.extends];
-            for (const ext of extendsArray) {
-                const extPath = path.resolve(dir, ext.endsWith('.json') ? ext : `${ext}.json`);
-                const parent = this.readTsConfig(extPath, visited);
-                parentOptions = { ...parentOptions, ...(parent.compilerOptions ?? {}) };
-            }
-        }
-        return {
-            compilerOptions: { ...parentOptions, ...(raw.compilerOptions ?? {}) },
-        };
     }
     loadWorkspacePackages() {
         const map = new Map();
@@ -365,6 +350,17 @@ export class Resolver {
             }
         }
     }
+    toProjectRelative(absPath) {
+        return path.relative(this.projectRoot, this.normalizePath(absPath));
+    }
+    normalizePath(filePath) {
+        try {
+            return fs.realpathSync.native(filePath);
+        }
+        catch {
+            return path.resolve(filePath);
+        }
+    }
 }
 // ── Module-level helpers ─────────────────────────────────────────────────────
 /**
@@ -398,10 +394,14 @@ function isSymbolDefined(symbolName, source) {
     const escaped = symbolName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const patterns = [
         new RegExp(`\\bexport\\s+(?:async\\s+)?function\\s+${escaped}\\b`),
+        new RegExp(`\\bexport\\s+default\\s+(?:async\\s+)?function\\s+${escaped}\\b`),
         new RegExp(`\\bexport\\s+(?:abstract\\s+)?class\\s+${escaped}\\b`),
+        new RegExp(`\\bexport\\s+default\\s+(?:abstract\\s+)?class\\s+${escaped}\\b`),
         new RegExp(`\\bexport\\s+(?:const|let|var)\\s+${escaped}\\b`),
         new RegExp(`\\bexport\\s+(?:type|interface)\\s+${escaped}\\b`),
-        new RegExp(`\\b(?:const|let|var|function|class)\\s+${escaped}\\b`),
+        new RegExp(`\\bexport\\s+enum\\s+${escaped}\\b`),
+        new RegExp(`\\bexport\\s+(?:namespace|module)\\s+${escaped}\\b`),
+        new RegExp(`\\bexport\\s+\\{[^}]*\\b${escaped}\\b(?:\\s+as\\s+\\w+)?[^}]*\\}(?!\\s*from\\b)`),
     ];
     return patterns.some((p) => p.test(source));
 }

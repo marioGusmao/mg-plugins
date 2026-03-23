@@ -47,6 +47,17 @@ export class QueryEngine {
         return this.callersFromUid(uid, depth);
     }
     /**
+     * Find callees by qualified_name scoped to a file — resolves method overloads.
+     */
+    calleesByQualifiedName(qualifiedName, file, depth) {
+        const uid = this.resolveByQualifiedName(qualifiedName, file);
+        if (uid === null)
+            return [];
+        if (isDisambiguation(uid))
+            return uid;
+        return this.calleesFromUid(uid, depth);
+    }
+    /**
      * Find all callees of a symbol by name.
      * Returns a DisambiguationResult when the name is ambiguous and no file is provided.
      */
@@ -68,11 +79,25 @@ export class QueryEngine {
         if (resolved === null) {
             return { callers: [], callees: [], affectedFiles: [], docReferences: [] };
         }
-        const callers = this.callersFromUid(resolved, depth);
-        const callees = this.calleesFromUid(resolved, depth);
-        const docReferences = this.getDocReferences(name, file);
+        return this.blastFromUid(resolved, name, file, depth);
+    }
+    /**
+     * Blast radius by exact symbol_uid — always unambiguous.
+     */
+    blastByUid(uid, depth) {
+        const symbol = this.db.getSymbolByUid(uid);
+        if (!symbol) {
+            return { callers: [], callees: [], affectedFiles: [], docReferences: [] };
+        }
+        const file = this.getFileById(symbol.file_id);
+        return this.blastFromUid(uid, symbol.name, file, depth);
+    }
+    blastFromUid(uid, symbolName, file, depth) {
+        const callers = this.callersFromUid(uid, depth);
+        const callees = this.calleesFromUid(uid, depth);
+        const docReferences = this.getDocReferences(symbolName, file);
         const fileSet = new Set();
-        const targetFile = this.getSymbolFile(resolved);
+        const targetFile = this.getSymbolFile(uid);
         if (targetFile)
             fileSet.add(targetFile);
         for (const r of callers)
@@ -186,7 +211,8 @@ export class QueryEngine {
        JOIN files f ON f.id = s.file_id
        LEFT JOIN edges e ON e.target_uid = s.symbol_uid AND e.kind = 'calls'
        WHERE s.exported = 1 AND e.id IS NULL
-       ORDER BY f.path`);
+       ORDER BY f.path
+       LIMIT 100`);
         const entryPoints = entryPointRows.map(r => ({
             symbolName: r.name,
             filePath: r.path,
@@ -273,7 +299,9 @@ export class QueryEngine {
      * symbols match and cannot be narrowed to one.
      */
     resolveSymbol(name, file) {
-        const symbols = this.db.getSymbolsByName(name);
+        const symbols = name.includes('.')
+            ? this.db.getSymbolsByQualifiedName(name)
+            : this.db.getSymbolsByName(name);
         if (symbols.length === 0)
             return null;
         // Exclude doc_reference symbols — they are virtual references to code
@@ -308,8 +336,8 @@ export class QueryEngine {
         if (!fileRecord)
             return null;
         const symbols = this.db
-            .getSymbolsByFile(fileRecord.id)
-            .filter(s => s.qualified_name === qualifiedName);
+            .getSymbolsByQualifiedName(qualifiedName)
+            .filter(s => s.file_id === fileRecord.id);
         if (symbols.length === 0)
             return null;
         if (symbols.length === 1)
@@ -352,15 +380,17 @@ export class QueryEngine {
             ? ['source_uid', 'target_uid']
             : ['target_uid', 'source_uid'];
         const sql = `
-      WITH RECURSIVE cte AS (
-        SELECT ${selectSide} AS uid, 1 AS depth
+      WITH RECURSIVE cte(uid, depth, path) AS (
+        SELECT ${selectSide} AS uid, 1 AS depth, '|' || ? || '|' || ${selectSide} || '|' AS path
         FROM edges
         WHERE ${whereSide} = ? AND kind = 'calls'
-        UNION
-        SELECT e.${selectSide}, c.depth + 1
+        UNION ALL
+        SELECT e.${selectSide}, c.depth + 1, c.path || e.${selectSide} || '|'
         FROM edges e
         JOIN cte c ON e.${whereSide} = c.uid
-        WHERE e.kind = 'calls' AND c.depth < ?
+        WHERE e.kind = 'calls'
+          AND c.depth < ?
+          AND instr(c.path, '|' || e.${selectSide} || '|') = 0
       )
       SELECT s.name, f.path, s.line_start, MIN(c.depth) AS depth
       FROM cte c
@@ -370,7 +400,7 @@ export class QueryEngine {
       ORDER BY depth, f.path
       LIMIT ${MAX_RESULTS}
     `;
-        return this.rawQuery(sql, uid, depthCap);
+        return this.rawQuery(sql, uid, uid, depthCap);
     }
     queryFileDepsInbound(file) {
         return this.rawQuery(`SELECT f_src.path, fd.kind

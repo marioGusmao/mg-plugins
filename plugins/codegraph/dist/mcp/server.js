@@ -21,19 +21,42 @@ function noIndexResponse() {
         structuredContent: { error: text },
     };
 }
+function createQueryContext(projectDir) {
+    const db = new Database(projectDir);
+    return { db, qe: new QueryEngine(db) };
+}
+function filterSymbolsToFile(db, symbols, filePath) {
+    if (!filePath)
+        return symbols;
+    return symbols.filter((symbol) => db.getFileById(symbol.file_id)?.path === filePath);
+}
+function resolveSymbolRecord(db, input) {
+    if (input.symbol_uid) {
+        return db.getSymbolByUid(input.symbol_uid);
+    }
+    if (input.qualified_name) {
+        const matches = filterSymbolsToFile(db, db.getSymbolsByQualifiedName(input.qualified_name), input.file);
+        return matches.length === 1 ? matches[0] : undefined;
+    }
+    if (input.symbol) {
+        const matches = filterSymbolsToFile(db, db.getSymbolsByName(input.symbol), input.file);
+        return matches.length === 1 ? matches[0] : undefined;
+    }
+    return undefined;
+}
 // ---------------------------------------------------------------------------
 // Handler implementations (pure functions, testable without stdio)
 // ---------------------------------------------------------------------------
-async function handleStatus(projectDir, _input) {
+async function handleStatus(projectDir, _input, context) {
     if (!dbExists(projectDir)) {
         return noIndexResponse();
     }
-    const db = new Database(projectDir);
+    const ownedContext = context ?? createQueryContext(projectDir);
     try {
         // The depth cap (MAX_DEPTH=15) in recursive CTEs is the primary protection
         // against runaway queries. better-sqlite3 is synchronous, so setTimeout-based
         // timeouts cannot interrupt running queries.
-        const status = db.getStatus();
+        const status = ownedContext.db.getStatus(projectDir);
         const markdown = formatStatus(status);
         return {
             content: [{ type: 'text', text: markdown }],
@@ -41,17 +64,17 @@ async function handleStatus(projectDir, _input) {
         };
     }
     finally {
-        db.close();
+        if (!context)
+            ownedContext.db.close();
     }
 }
-async function handleBrief(projectDir, _input) {
+async function handleBrief(projectDir, _input, context) {
     if (!dbExists(projectDir)) {
         return noIndexResponse();
     }
-    const db = new Database(projectDir);
+    const ownedContext = context ?? createQueryContext(projectDir);
     try {
-        const qe = new QueryEngine(db);
-        const brief = qe.brief();
+        const brief = ownedContext.qe.brief();
         const markdown = formatBrief(brief);
         return {
             content: [{ type: 'text', text: markdown }],
@@ -59,17 +82,17 @@ async function handleBrief(projectDir, _input) {
         };
     }
     finally {
-        db.close();
+        if (!context)
+            ownedContext.db.close();
     }
 }
-async function handleSearch(projectDir, input) {
+async function handleSearch(projectDir, input, context) {
     if (!dbExists(projectDir)) {
         return noIndexResponse();
     }
-    const db = new Database(projectDir);
+    const ownedContext = context ?? createQueryContext(projectDir);
     try {
-        const qe = new QueryEngine(db);
-        const results = qe.search(input.query, input.kind);
+        const results = ownedContext.qe.search(input.query, input.kind);
         const markdown = formatSearch(input.query, results);
         return {
             content: [{ type: 'text', text: markdown }],
@@ -77,26 +100,26 @@ async function handleSearch(projectDir, input) {
         };
     }
     finally {
-        db.close();
+        if (!context)
+            ownedContext.db.close();
     }
 }
-async function handleCallers(projectDir, input) {
+async function handleCallers(projectDir, input, context) {
     if (!dbExists(projectDir)) {
         return noIndexResponse();
     }
-    const db = new Database(projectDir);
+    const ownedContext = context ?? createQueryContext(projectDir);
     try {
-        const qe = new QueryEngine(db);
         const depth = input.depth;
         let results;
         if (input.symbol_uid) {
-            results = qe.callersByUid(input.symbol_uid, depth);
+            results = ownedContext.qe.callersByUid(input.symbol_uid, depth);
         }
         else if (input.qualified_name && input.file) {
-            results = qe.callersByQualifiedName(input.qualified_name, input.file, depth);
+            results = ownedContext.qe.callersByQualifiedName(input.qualified_name, input.file, depth);
         }
         else if (input.symbol) {
-            results = qe.callers(input.symbol, input.file, depth);
+            results = ownedContext.qe.callers(input.symbol, input.file, depth);
         }
         else {
             const text = 'Must provide symbol_uid, (qualified_name + file), or symbol.';
@@ -112,19 +135,7 @@ async function handleCallers(projectDir, input) {
         }
         const symbolName = input.symbol_uid ?? input.qualified_name ?? input.symbol ?? '';
         const filePath = input.file ?? '';
-        // Look up the actual definition line from the DB
-        let definitionLine = 0;
-        if (input.symbol_uid) {
-            const sym = db.getSymbolByUid(input.symbol_uid);
-            definitionLine = sym?.line_start ?? 0;
-        }
-        else {
-            const lookupName = input.qualified_name ?? input.symbol ?? '';
-            if (lookupName) {
-                const syms = db.getSymbolsByName(lookupName);
-                definitionLine = syms[0]?.line_start ?? 0;
-            }
-        }
+        const definitionLine = resolveSymbolRecord(ownedContext.db, input)?.line_start ?? 0;
         const markdown = formatCallers(symbolName, filePath, definitionLine, results);
         return {
             content: [{ type: 'text', text: markdown }],
@@ -132,27 +143,26 @@ async function handleCallers(projectDir, input) {
         };
     }
     finally {
-        db.close();
+        if (!context)
+            ownedContext.db.close();
     }
 }
-async function handleCallees(projectDir, input) {
+async function handleCallees(projectDir, input, context) {
     if (!dbExists(projectDir)) {
         return noIndexResponse();
     }
-    const db = new Database(projectDir);
+    const ownedContext = context ?? createQueryContext(projectDir);
     try {
-        const qe = new QueryEngine(db);
         const depth = input.depth;
         let results;
         if (input.symbol_uid) {
-            results = qe.calleesByUid(input.symbol_uid, depth);
+            results = ownedContext.qe.calleesByUid(input.symbol_uid, depth);
         }
         else if (input.qualified_name && input.file) {
-            // Use search + callees with file
-            results = qe.callees(input.qualified_name, input.file, depth);
+            results = ownedContext.qe.calleesByQualifiedName(input.qualified_name, input.file, depth);
         }
         else if (input.symbol) {
-            results = qe.callees(input.symbol, input.file, depth);
+            results = ownedContext.qe.callees(input.symbol, input.file, depth);
         }
         else {
             const text = 'Must provide symbol_uid, (qualified_name + file), or symbol.';
@@ -167,19 +177,7 @@ async function handleCallees(projectDir, input) {
         }
         const symbolName = input.symbol_uid ?? input.qualified_name ?? input.symbol ?? '';
         const filePath = input.file ?? '';
-        // Look up the actual definition line from the DB
-        let definitionLine = 0;
-        if (input.symbol_uid) {
-            const sym = db.getSymbolByUid(input.symbol_uid);
-            definitionLine = sym?.line_start ?? 0;
-        }
-        else {
-            const lookupName = input.qualified_name ?? input.symbol ?? '';
-            if (lookupName) {
-                const syms = db.getSymbolsByName(lookupName);
-                definitionLine = syms[0]?.line_start ?? 0;
-            }
-        }
+        const definitionLine = resolveSymbolRecord(ownedContext.db, input)?.line_start ?? 0;
         const markdown = formatCallees(symbolName, filePath, definitionLine, results);
         return {
             content: [{ type: 'text', text: markdown }],
@@ -187,41 +185,45 @@ async function handleCallees(projectDir, input) {
         };
     }
     finally {
-        db.close();
+        if (!context)
+            ownedContext.db.close();
     }
 }
-async function handleBlast(projectDir, input) {
+async function handleBlast(projectDir, input, context) {
     if (!dbExists(projectDir)) {
         return noIndexResponse();
     }
-    const db = new Database(projectDir);
+    const ownedContext = context ?? createQueryContext(projectDir);
     try {
-        const qe = new QueryEngine(db);
         const depth = input.depth;
         let symbolName;
-        let filePath;
+        // When symbol_uid is provided, use blastByUid directly to avoid
+        // resolving by short name (which causes spurious disambiguation).
         if (input.symbol_uid) {
-            const sym = db.getSymbolByUid(input.symbol_uid);
+            const sym = ownedContext.db.getSymbolByUid(input.symbol_uid);
             if (!sym) {
                 const text = `Symbol with uid '${input.symbol_uid}' not found.`;
                 return { content: [{ type: 'text', text }], structuredContent: { error: text } };
             }
+            const blastResult = ownedContext.qe.blastByUid(input.symbol_uid, depth);
             symbolName = sym.name;
-            filePath = undefined;
+            const markdown = formatBlast(symbolName, blastResult.callers, blastResult.callees, blastResult.affectedFiles, blastResult.docReferences);
+            return {
+                content: [{ type: 'text', text: markdown }],
+                structuredContent: blastResult,
+            };
         }
-        else if (input.qualified_name && input.file) {
+        if (input.qualified_name && input.file) {
             symbolName = input.qualified_name;
-            filePath = input.file;
         }
         else if (input.symbol) {
             symbolName = input.symbol;
-            filePath = input.file;
         }
         else {
             const text = 'Must provide symbol_uid, (qualified_name + file), or symbol.';
             return { content: [{ type: 'text', text }], structuredContent: { error: text } };
         }
-        const blastResult = qe.blast(symbolName, filePath, depth);
+        const blastResult = ownedContext.qe.blast(symbolName, input.file, depth);
         if (isDisambiguation(blastResult)) {
             const markdown = formatDisambiguation(symbolName, blastResult.matches);
             return {
@@ -236,18 +238,18 @@ async function handleBlast(projectDir, input) {
         };
     }
     finally {
-        db.close();
+        if (!context)
+            ownedContext.db.close();
     }
 }
-async function handleDepends(projectDir, input) {
+async function handleDepends(projectDir, input, context) {
     if (!dbExists(projectDir)) {
         return noIndexResponse();
     }
-    const db = new Database(projectDir);
+    const ownedContext = context ?? createQueryContext(projectDir);
     try {
-        const qe = new QueryEngine(db);
         const direction = input.direction ?? 'both';
-        const results = qe.depends(input.file, direction);
+        const results = ownedContext.qe.depends(input.file, direction);
         const markdown = formatDepends(input.file, results);
         return {
             content: [{ type: 'text', text: markdown }],
@@ -255,18 +257,23 @@ async function handleDepends(projectDir, input) {
         };
     }
     finally {
-        db.close();
+        if (!context)
+            ownedContext.db.close();
     }
 }
-export function createToolHandlers(projectDir) {
+export function createToolHandlers(projectDir, options = {}) {
+    const sharedContext = options.sharedConnection && dbExists(projectDir)
+        ? createQueryContext(projectDir)
+        : undefined;
     return {
-        codegraph_brief: (input) => handleBrief(projectDir, input),
-        codegraph_status: (input) => handleStatus(projectDir, input),
-        codegraph_search: (input) => handleSearch(projectDir, input),
-        codegraph_callers: (input) => handleCallers(projectDir, input),
-        codegraph_callees: (input) => handleCallees(projectDir, input),
-        codegraph_blast: (input) => handleBlast(projectDir, input),
-        codegraph_depends: (input) => handleDepends(projectDir, input),
+        codegraph_brief: (input) => handleBrief(projectDir, input, sharedContext),
+        codegraph_status: (input) => handleStatus(projectDir, input, sharedContext),
+        codegraph_search: (input) => handleSearch(projectDir, input, sharedContext),
+        codegraph_callers: (input) => handleCallers(projectDir, input, sharedContext),
+        codegraph_callees: (input) => handleCallees(projectDir, input, sharedContext),
+        codegraph_blast: (input) => handleBlast(projectDir, input, sharedContext),
+        codegraph_depends: (input) => handleDepends(projectDir, input, sharedContext),
+        close: sharedContext ? () => sharedContext.db.close() : undefined,
     };
 }
 // ---------------------------------------------------------------------------
@@ -295,63 +302,57 @@ const symbolDisambigSchema = {
 export async function startServer(projectDir) {
     const server = new McpServer({
         name: 'codegraph',
-        version: '1.0.0',
+        version: '1.1.2',
     });
-    const handlers = createToolHandlers(projectDir);
+    const handlers = createToolHandlers(projectDir, { sharedConnection: true });
+    /** Wrap a handler to catch exceptions and return a structured error instead of crashing. */
+    function safeHandler(fn) {
+        return async (args) => {
+            try {
+                return await fn(args);
+            }
+            catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                return { content: [{ type: 'text', text: `Error: ${msg}` }], structuredContent: { error: msg } };
+            }
+        };
+    }
     // --- codegraph_brief ---
     server.registerTool('codegraph_brief', {
         description: 'Get a complete codebase briefing — architecture, hotspots, risk zones, entry points, and module dependencies in one call',
         inputSchema: {},
-    }, async () => {
-        const result = await handlers.codegraph_brief({});
-        return result;
-    });
+    }, safeHandler(async () => handlers.codegraph_brief({})));
     // --- codegraph_status ---
     server.registerTool('codegraph_status', {
         description: 'Show the current state of the CodeGraph index for the project',
         inputSchema: {},
-    }, async () => {
-        const result = await handlers.codegraph_status({});
-        return result;
-    });
+    }, safeHandler(async () => handlers.codegraph_status({})));
     // --- codegraph_search ---
     server.registerTool('codegraph_search', {
         description: 'Search for symbols by name or kind in the indexed codebase',
         inputSchema: {
-            query: z.string().describe('Search query (substring match on name/qualified name)'),
+            query: z.string().min(1).describe('Search query (substring match on name/qualified name)'),
             kind: z
-                .enum(['function', 'class', 'method', 'variable', 'type', 'export'])
+                .enum(['function', 'class', 'method', 'variable', 'type', 'enum', 'namespace', 'export'])
                 .optional()
                 .describe('Filter by symbol kind'),
         },
-    }, async (args) => {
-        const result = await handlers.codegraph_search(args);
-        return result;
-    });
+    }, safeHandler(async (args) => handlers.codegraph_search(args)));
     // --- codegraph_callers ---
     server.registerTool('codegraph_callers', {
         description: 'Find all callers of a symbol (recursive up to depth)',
         inputSchema: symbolDisambigSchema,
-    }, async (args) => {
-        const result = await handlers.codegraph_callers(args);
-        return result;
-    });
+    }, safeHandler(async (args) => handlers.codegraph_callers(args)));
     // --- codegraph_callees ---
     server.registerTool('codegraph_callees', {
         description: 'Find all symbols called by a symbol (recursive up to depth)',
         inputSchema: symbolDisambigSchema,
-    }, async (args) => {
-        const result = await handlers.codegraph_callees(args);
-        return result;
-    });
+    }, safeHandler(async (args) => handlers.codegraph_callees(args)));
     // --- codegraph_blast ---
     server.registerTool('codegraph_blast', {
-        description: 'Compute blast radius: union of callers + callees for a symbol',
+        description: 'Compute full blast radius for a symbol: callers, callees, affected files, and documentation references',
         inputSchema: symbolDisambigSchema,
-    }, async (args) => {
-        const result = await handlers.codegraph_blast(args);
-        return result;
-    });
+    }, safeHandler(async (args) => handlers.codegraph_blast(args)));
     // --- codegraph_depends ---
     server.registerTool('codegraph_depends', {
         description: 'Show file dependency tree (inbound, outbound, or both)',
@@ -363,10 +364,7 @@ export async function startServer(projectDir) {
                 .default('both')
                 .describe("Direction: 'in' (who imports this), 'out' (what this imports), or 'both'"),
         },
-    }, async (args) => {
-        const result = await handlers.codegraph_depends(args);
-        return result;
-    });
+    }, safeHandler(async (args) => handlers.codegraph_depends(args)));
     const transport = new StdioServerTransport();
     await server.connect(transport);
 }

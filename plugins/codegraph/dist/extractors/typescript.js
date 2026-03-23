@@ -24,7 +24,7 @@ function findEnclosingFunction(node) {
         if (current.type === 'function_declaration' || current.type === 'function') {
             const name = getNameText(current);
             if (name)
-                return name;
+                return qualifyWithinNamespace(current, name).qualifiedName;
         }
         if (current.type === 'method_definition') {
             const methodName = getNameText(current);
@@ -40,7 +40,7 @@ function findEnclosingFunction(node) {
             if (parent?.type === 'variable_declarator') {
                 const varName = parent.childForFieldName('name') ?? parent.namedChildren[0];
                 if (varName)
-                    return varName.text;
+                    return qualifyWithinNamespace(parent, varName.text).qualifiedName;
             }
         }
         current = current.parent;
@@ -54,12 +54,37 @@ function findEnclosingClass(node) {
         if (current.type === 'class_declaration' || current.type === 'class') {
             const nameNode = current.childForFieldName('name') ??
                 current.namedChildren.find((c) => c.type === 'type_identifier');
-            if (nameNode)
-                return nameNode.text;
+            if (nameNode) {
+                const namespace = findEnclosingNamespace(current);
+                return namespace ? `${namespace}.${nameNode.text}` : nameNode.text;
+            }
         }
         current = current.parent;
     }
     return null;
+}
+function findEnclosingNamespace(node) {
+    const names = [];
+    let current = node.parent;
+    while (current !== null) {
+        if (current.type === 'internal_module') {
+            const name = getNameText(current);
+            if (name)
+                names.unshift(name);
+        }
+        current = current.parent;
+    }
+    return names.length > 0 ? names.join('.') : null;
+}
+function qualifyWithinNamespace(node, name) {
+    const namespace = findEnclosingNamespace(node);
+    if (!namespace) {
+        return { qualifiedName: name, containerName: '' };
+    }
+    return {
+        qualifiedName: `${namespace}.${name}`,
+        containerName: namespace,
+    };
 }
 /** True when the node is a direct child of an export_statement. */
 function isExported(node) {
@@ -80,10 +105,11 @@ export class TypeScriptExtractor {
                     const name = getNameText(node);
                     if (name) {
                         const exported = isExported(node);
+                        const { qualifiedName, containerName } = qualifyWithinNamespace(node, name);
                         symbols.push({
                             name,
-                            qualified_name: name,
-                            container_name: '',
+                            qualified_name: qualifiedName,
+                            container_name: containerName,
                             kind: 'function',
                             line_start: node.startPosition.row + 1,
                             line_end: node.endPosition.row + 1,
@@ -98,10 +124,11 @@ export class TypeScriptExtractor {
                         null;
                     if (name) {
                         const exported = isExported(node);
+                        const { qualifiedName, containerName } = qualifyWithinNamespace(node, name);
                         symbols.push({
                             name,
-                            qualified_name: name,
-                            container_name: '',
+                            qualified_name: qualifiedName,
+                            container_name: containerName,
                             kind: 'class',
                             line_start: node.startPosition.row + 1,
                             line_end: node.endPosition.row + 1,
@@ -138,10 +165,11 @@ export class TypeScriptExtractor {
                         if (nameNode) {
                             // exported if grandparent chain reaches export_statement
                             const exported = isExportedVariableDeclarator(node);
+                            const { qualifiedName, containerName } = qualifyWithinNamespace(node, nameNode.text);
                             symbols.push({
                                 name: nameNode.text,
-                                qualified_name: nameNode.text,
-                                container_name: '',
+                                qualified_name: qualifiedName,
+                                container_name: containerName,
                                 kind: 'function',
                                 line_start: node.startPosition.row + 1,
                                 line_end: node.endPosition.row + 1,
@@ -157,10 +185,11 @@ export class TypeScriptExtractor {
                         null;
                     if (name) {
                         const exported = isExported(node);
+                        const { qualifiedName, containerName } = qualifyWithinNamespace(node, name);
                         symbols.push({
                             name,
-                            qualified_name: name,
-                            container_name: '',
+                            qualified_name: qualifiedName,
+                            container_name: containerName,
                             kind: 'type',
                             line_start: node.startPosition.row + 1,
                             line_end: node.endPosition.row + 1,
@@ -175,14 +204,49 @@ export class TypeScriptExtractor {
                         null;
                     if (name) {
                         const exported = isExported(node);
+                        const { qualifiedName, containerName } = qualifyWithinNamespace(node, name);
                         symbols.push({
                             name,
-                            qualified_name: name,
-                            container_name: '',
+                            qualified_name: qualifiedName,
+                            container_name: containerName,
                             kind: 'type',
                             line_start: node.startPosition.row + 1,
                             line_end: node.endPosition.row + 1,
                             exported,
+                        });
+                    }
+                    break;
+                }
+                case 'enum_declaration': {
+                    const name = getNameText(node);
+                    if (name) {
+                        const exported = isExported(node);
+                        const { qualifiedName, containerName } = qualifyWithinNamespace(node, name);
+                        symbols.push({
+                            name,
+                            qualified_name: qualifiedName,
+                            container_name: containerName,
+                            kind: 'enum',
+                            line_start: node.startPosition.row + 1,
+                            line_end: node.endPosition.row + 1,
+                            exported,
+                        });
+                    }
+                    break;
+                }
+                case 'internal_module': {
+                    const name = getNameText(node);
+                    if (name) {
+                        const outerNamespace = findEnclosingNamespace(node);
+                        const qualifiedName = outerNamespace ? `${outerNamespace}.${name}` : name;
+                        symbols.push({
+                            name,
+                            qualified_name: qualifiedName,
+                            container_name: outerNamespace ?? '',
+                            kind: 'namespace',
+                            line_start: node.startPosition.row + 1,
+                            line_end: node.endPosition.row + 1,
+                            exported: isExported(node),
                         });
                     }
                     break;
@@ -249,10 +313,13 @@ export class TypeScriptExtractor {
             if (node.type === 'export_statement') {
                 const sourceNode = node.namedChildren.find((c) => c.type === 'string');
                 const clauseNode = node.namedChildren.find((c) => c.type === 'export_clause');
-                if (sourceNode && clauseNode) {
-                    const rawSource = sourceNode.namedChildren.find((c) => c.type === 'string_fragment')?.text;
-                    if (!rawSource)
-                        continue;
+                const namespaceExportNode = node.namedChildren.find((c) => c.type === 'namespace_export');
+                if (!sourceNode)
+                    continue;
+                const rawSource = sourceNode.namedChildren.find((c) => c.type === 'string_fragment')?.text;
+                if (!rawSource)
+                    continue;
+                if (clauseNode) {
                     const specifiers = clauseNode
                         .namedChildren
                         .filter((c) => c.type === 'export_specifier')
@@ -265,6 +332,23 @@ export class TypeScriptExtractor {
                         .filter(Boolean);
                     imports.push({
                         specifiers,
+                        source: rawSource,
+                        kind: 'import',
+                    });
+                    continue;
+                }
+                if (namespaceExportNode) {
+                    const namespaceName = namespaceExportNode.namedChildren.find((c) => c.type === 'identifier')?.text;
+                    imports.push({
+                        specifiers: namespaceName ? [`* as ${namespaceName}`] : ['*'],
+                        source: rawSource,
+                        kind: 'import',
+                    });
+                    continue;
+                }
+                if (sourceNode) {
+                    imports.push({
+                        specifiers: ['*'],
                         source: rawSource,
                         kind: 'import',
                     });
@@ -288,15 +372,28 @@ function isExportedVariableDeclarator(node) {
 function extractImportSpecifiers(clauseNode) {
     if (!clauseNode)
         return [];
-    const named = clauseNode.namedChildren.find((c) => c.type === 'named_imports');
-    if (!named)
-        return [];
-    return named.namedChildren
-        .filter((c) => c.type === 'import_specifier')
-        .map((spec) => {
-        // import_specifier first named child is the identifier
-        return spec.namedChildren[0]?.text ?? spec.text;
-    })
-        .filter(Boolean);
+    const specifiers = [];
+    for (const child of clauseNode.namedChildren) {
+        if (child.type === 'identifier') {
+            specifiers.push(child.text);
+            continue;
+        }
+        if (child.type === 'named_imports') {
+            specifiers.push(...child.namedChildren
+                .filter((c) => c.type === 'import_specifier')
+                .map((spec) => {
+                const alias = spec.childForFieldName('alias')?.text;
+                return alias ?? spec.childForFieldName('name')?.text ?? spec.namedChildren[0]?.text ?? spec.text;
+            })
+                .filter(Boolean));
+            continue;
+        }
+        if (child.type === 'namespace_import') {
+            const namespaceName = child.namedChildren.find((c) => c.type === 'identifier')?.text;
+            if (namespaceName)
+                specifiers.push(namespaceName);
+        }
+    }
+    return specifiers;
 }
 //# sourceMappingURL=typescript.js.map

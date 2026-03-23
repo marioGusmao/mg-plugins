@@ -30,17 +30,41 @@ try {
     timeout: 5000,
     stdio: ['pipe', 'pipe', 'pipe'],
   });
-} catch {
-  console.log(
-    `[CodeGraph] Native module ABI mismatch. Run:\n` +
-    `  cd "${pluginRoot}" && npm rebuild better-sqlite3`
-  );
-  process.exit(0);
+} catch (loadErr) {
+  // Distinguish ABI mismatch from other load errors
+  const errMsg = loadErr.stderr?.toString?.() ?? loadErr.message ?? '';
+  const isAbiMismatch = /NODE_MODULE_VERSION|was compiled against a different/.test(errMsg);
+
+  if (!isAbiMismatch) {
+    console.log(
+      `[CodeGraph] Native module failed to load (not an ABI mismatch): ${errMsg.slice(0, 200)}`
+    );
+    process.exit(0);
+  }
+
+  // Auto-rebuild native modules for ABI mismatch
+  const rebuildDir = process.env.CLAUDE_PLUGIN_DATA || pluginRoot;
+  try {
+    const rebuildResult = execFileSync('npm', ['rebuild', 'better-sqlite3', 'tree-sitter', 'tree-sitter-typescript', 'tree-sitter-javascript'], {
+      cwd: rebuildDir,
+      timeout: 60000,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    console.log('[CodeGraph] Native modules rebuilt automatically after ABI mismatch.');
+  } catch (rebuildErr) {
+    const rebuildMsg = rebuildErr.stderr?.toString?.() ?? rebuildErr.message ?? '';
+    console.log(
+      `[CodeGraph] Native module ABI mismatch — auto-rebuild failed:\n  ${rebuildMsg.slice(0, 300)}\n` +
+      `  Run manually: cd "${rebuildDir}" && npm rebuild better-sqlite3`
+    );
+    process.exit(0);
+  }
 }
 
 // Check 2: Does the current project have source files worth indexing?
 const hasSourceFiles = fs.existsSync(path.join(projectDir, 'tsconfig.json')) ||
-  fs.existsSync(path.join(projectDir, 'package.json'));
+  fs.existsSync(path.join(projectDir, 'package.json')) ||
+  fs.existsSync(path.join(projectDir, '.codegraph', 'graph.db'));
 
 if (!hasSourceFiles) {
   // Not a code project — skip silently

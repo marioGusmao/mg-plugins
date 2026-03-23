@@ -42,6 +42,13 @@ if (!filePath || !oldString) {
   process.exit(0);
 }
 
+// Skip non-indexed file types — avoid false positives on Bash/YAML/JSON
+const fileExt = path.extname(filePath).toLowerCase();
+const indexedExtensions = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
+if (!indexedExtensions.has(fileExt)) {
+  process.exit(0);
+}
+
 // Skip blast-gate on very large edits — regex would be too slow
 if (oldString.length > 10000) {
   process.exit(0);
@@ -61,11 +68,12 @@ if (!fs.existsSync(cliPath) || !fs.existsSync(dbPath)) {
 // --- Extract symbol names from the edit ---
 const symbolPatterns = [
   /\bfunction\s+(\w+)\s*\(/g,
-  /\b(?:async\s+)?(\w+)\s*\(/g,
+  /\b(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:\([^)]*\)|[\w]+)\s*=>/g,
   /\b(?:const|let|var)\s+(\w+)\s*=/g,
   /\bclass\s+(\w+)/g,
   /\bexport\s+(?:default\s+)?(?:function|const|let|var|class)\s+(\w+)/g,
   /\b(?:type|interface)\s+(\w+)/g,
+  /^\s*(?:async\s+)?(\w+)\s*\(/gm,
 ];
 
 const skipWords = new Set(['if', 'for', 'while', 'switch', 'return', 'new', 'true', 'false', 'null', 'undefined', 'async', 'await', 'const', 'let', 'var']);
@@ -100,6 +108,7 @@ for (const symbolName of symbolsToCheck) {
     // execFileSync — no shell, no injection risk
     const result = execFileSync('node', [
       cliPath, 'query', 'blast', symbolName,
+      '--file', filePath,
       '--project', projectDir,
       '--json',
     ], {

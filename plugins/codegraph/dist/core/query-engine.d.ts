@@ -89,6 +89,10 @@ export declare class QueryEngine {
      */
     callersByQualifiedName(qualifiedName: string, file: string, depth?: number): CallerResult[] | DisambiguationResult;
     /**
+     * Find callees by qualified_name scoped to a file — resolves method overloads.
+     */
+    calleesByQualifiedName(qualifiedName: string, file: string, depth?: number): CallerResult[] | DisambiguationResult;
+    /**
      * Find all callees of a symbol by name.
      * Returns a DisambiguationResult when the name is ambiguous and no file is provided.
      */
@@ -97,6 +101,11 @@ export declare class QueryEngine {
      * Union of callers + callees + affected files + doc references for a symbol.
      */
     blast(name: string, file?: string, depth?: number): BlastResult | DisambiguationResult;
+    /**
+     * Blast radius by exact symbol_uid — always unambiguous.
+     */
+    blastByUid(uid: string, depth?: number): BlastResult;
+    private blastFromUid;
     /**
      * Find all documentation references pointing to a code symbol.
      * Queries `documents` edges where the target symbol matches `symbolName`.

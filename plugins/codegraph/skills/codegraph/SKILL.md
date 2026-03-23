@@ -95,10 +95,11 @@ These run automatically — no manual action needed:
 
 | Hook | Trigger | What happens |
 |------|---------|-------------|
-| **SessionStart** | New session | Checks build, index, staleness — suggests setup if needed |
-| **PreToolUse (Edit)** | Before any edit | **Blast radius gate** — warns if edit affects many call sites + docs |
-| **PreToolUse (Bash)** | `git pull/checkout/merge` | Suggests incremental re-index |
+| **SessionStart** | New session | Checks build, native modules (auto-rebuilds on ABI mismatch), index, staleness |
+| **PreToolUse (Edit)** | Before any edit to TS/JS files | **Blast radius gate** — warns if edit affects many call sites + docs |
+| **PreToolUse (Bash)** | `git pull/merge/rebase/checkout/switch/reset/restore/cherry-pick`, `stash pop/apply`, `npm/pnpm/yarn install` | Suggests incremental re-index |
 | **PostToolUse (Edit/Write)** | After file edit | Warns if edited file is stale in the index |
+| **PostToolUse (Bash)** | `git pull/merge/rebase/checkout/switch/reset/restore/cherry-pick`, `stash pop/apply`, `npm/pnpm/yarn install` | Triggers incremental re-index automatically |
 
 ## Rules
 

@@ -129,6 +129,26 @@ export class Database {
     deleteFileSymbolsAndEdges(fileId) {
         this.db.prepare('DELETE FROM symbols WHERE file_id = ?').run(fileId);
     }
+    /**
+     * Get all edges where target_uid belongs to this file's symbols but
+     * source_uid belongs to a DIFFERENT file's symbols. These are "inbound"
+     * edges from other files that would be lost on CASCADE delete.
+     */
+    getInboundEdgesFromOtherFiles(fileId) {
+        const rows = this.db
+            .prepare(`SELECT e.source_uid, e.target_uid, e.kind, e.confidence
+         FROM edges e
+         JOIN symbols s_tgt ON s_tgt.symbol_uid = e.target_uid
+         WHERE s_tgt.file_id = ?
+           AND e.source_uid NOT IN (SELECT symbol_uid FROM symbols WHERE file_id = ?)`)
+            .all(fileId, fileId);
+        return rows.map(r => ({
+            source_uid: r.source_uid,
+            target_uid: r.target_uid,
+            kind: r.kind,
+            confidence: r.confidence,
+        }));
+    }
     insertSymbol(input) {
         const result = this.db
             .prepare(`INSERT OR IGNORE INTO symbols
@@ -170,6 +190,11 @@ export class Database {
         return this.db
             .prepare('SELECT * FROM symbols WHERE name = ?')
             .all(name);
+    }
+    getSymbolsByQualifiedName(qualifiedName) {
+        return this.db
+            .prepare('SELECT * FROM symbols WHERE qualified_name = ?')
+            .all(qualifiedName);
     }
     searchSymbols(pattern, kind) {
         const escaped = pattern.replace(/[%_\\]/g, '\\$&');
@@ -269,8 +294,14 @@ export class Database {
         }
         let staleCount = 0;
         if (projectRoot) {
-            const files = this.getAllFiles();
-            for (const f of files) {
+            // Order by most recently indexed so the capped scan catches recent edits first
+            const files = this.db
+                .prepare('SELECT * FROM files ORDER BY indexed_at DESC')
+                .all();
+            // Cap stale scan to avoid blocking the event loop on large codebases
+            const MAX_STALE_SCAN = 2000;
+            const filesToScan = files.length <= MAX_STALE_SCAN ? files : files.slice(0, MAX_STALE_SCAN);
+            for (const f of filesToScan) {
                 const absPath = path.join(projectRoot, f.path);
                 try {
                     const content = fs.readFileSync(absPath, 'utf-8');
@@ -281,6 +312,10 @@ export class Database {
                 catch {
                     staleCount++; // file deleted = stale
                 }
+            }
+            // If we capped, stale count is approximate
+            if (files.length > MAX_STALE_SCAN && staleCount > 0) {
+                staleCount = Math.round((staleCount / MAX_STALE_SCAN) * files.length);
             }
         }
         return {

@@ -42,10 +42,17 @@ export declare class Database {
     getFileById(id: number): FileRecord | undefined;
     deleteFile(id: number): void;
     deleteFileSymbolsAndEdges(fileId: number): void;
+    /**
+     * Get all edges where target_uid belongs to this file's symbols but
+     * source_uid belongs to a DIFFERENT file's symbols. These are "inbound"
+     * edges from other files that would be lost on CASCADE delete.
+     */
+    getInboundEdgesFromOtherFiles(fileId: number): InsertEdgeInput[];
     insertSymbol(input: InsertSymbolInput): number;
     getSymbolByUid(symbolUid: string): SymbolRecord | undefined;
     getSymbolsByFile(fileId: number): SymbolRecord[];
     getSymbolsByName(name: string): SymbolRecord[];
+    getSymbolsByQualifiedName(qualifiedName: string): SymbolRecord[];
     searchSymbols(pattern: string, kind?: string): SymbolRecord[];
     insertEdge(input: InsertEdgeInput): number;
     getEdgesBySourceUid(sourceUid: string): EdgeRecord[];

@@ -31,8 +31,11 @@ export interface ToolHandlers {
     codegraph_callees: (input: CallerCalleeInput) => Promise<ToolResponse>;
     codegraph_blast: (input: CallerCalleeInput) => Promise<ToolResponse>;
     codegraph_depends: (input: DependsInput) => Promise<ToolResponse>;
+    close?: () => void;
 }
-export declare function createToolHandlers(projectDir: string): ToolHandlers;
+export declare function createToolHandlers(projectDir: string, options?: {
+    sharedConnection?: boolean;
+}): ToolHandlers;
 export declare function startServer(projectDir: string): Promise<void>;
 /**
  * Parse the --project argument from process.argv.

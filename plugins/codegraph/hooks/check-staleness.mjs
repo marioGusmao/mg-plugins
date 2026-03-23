@@ -15,6 +15,13 @@ try {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || path.resolve(__dirname, '..');
   const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+
+  // Skip if file is outside the project directory (avoids false positives)
+  const absFile = path.resolve(filePath);
+  const absProject = path.resolve(projectDir);
+  if (!absFile.startsWith(absProject + path.sep) && absFile !== absProject) {
+    process.exit(0);
+  }
   const cliPath = path.join(pluginRoot, 'dist', 'cli', 'index.js');
   const dbPath = path.join(projectDir, '.codegraph', 'graph.db');
 

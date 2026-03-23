@@ -50,6 +50,11 @@ export function registerQueryCmd(program) {
             const qe = new QueryEngine(db);
             runQuery(toolName, symbol, options, qe, db, depth, direction, outputJson, projectRoot);
         }
+        catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            console.error(`Error: ${message}`);
+            process.exitCode = 1;
+        }
         finally {
             db.close();
         }
@@ -82,8 +87,7 @@ function runQuery(toolName, symbol, options, qe, db, depth, direction, outputJso
         }
         case 'search': {
             if (!symbol) {
-                console.error('Error: search requires a <symbol> query argument.');
-                process.exit(1);
+                throw new Error('search requires a <symbol> query argument.');
             }
             const results = qe.search(symbol, options.kind);
             if (outputJson) {
@@ -139,16 +143,14 @@ function runQuery(toolName, symbol, options, qe, db, depth, direction, outputJso
         }
         case 'blast': {
             if (!symbol && !options.uid && !options.qualifiedName) {
-                console.error('Error: blast requires a <symbol>, --uid, or --qualified-name argument.');
-                process.exit(1);
+                throw new Error('blast requires a <symbol>, --uid, or --qualified-name argument.');
             }
             let symName;
             let symFile;
             if (options.uid) {
                 const sym = db.getSymbolByUid(options.uid);
                 if (!sym) {
-                    console.error(`Error: Symbol with uid '${options.uid}' not found.`);
-                    process.exit(1);
+                    throw new Error(`Symbol with uid '${options.uid}' not found.`);
                 }
                 symName = sym.name;
                 symFile = undefined;
@@ -181,8 +183,7 @@ function runQuery(toolName, symbol, options, qe, db, depth, direction, outputJso
         case 'depends': {
             const targetFile = options.file ?? symbol;
             if (!targetFile) {
-                console.error('Error: depends requires a --file <path> or <symbol> argument specifying the file.');
-                process.exit(1);
+                throw new Error('depends requires a --file <path> or <symbol> argument specifying the file.');
             }
             const dependsResult = qe.depends(targetFile, direction);
             if (outputJson) {
@@ -194,8 +195,7 @@ function runQuery(toolName, symbol, options, qe, db, depth, direction, outputJso
             break;
         }
         default: {
-            console.error(`Error: unknown tool '${toolName}'. Valid tools: brief, callers, callees, blast, depends, search, status`);
-            process.exit(1);
+            throw new Error(`unknown tool '${toolName}'. Valid tools: brief, callers, callees, blast, depends, search, status`);
         }
     }
 }
@@ -210,8 +210,7 @@ function resolveAndRunCallers(qe, symbol, options, depth) {
         return qe.callersByQualifiedName(options.qualifiedName, options.file, depth);
     }
     if (!symbol) {
-        console.error('Error: callers requires a <symbol>, --uid, or --qualified-name + --file argument.');
-        process.exit(1);
+        throw new Error('callers requires a <symbol>, --uid, or --qualified-name + --file argument.');
     }
     return qe.callers(symbol, options.file, depth);
 }
@@ -223,8 +222,7 @@ function resolveAndRunCallees(qe, symbol, options, depth) {
         return qe.callees(options.qualifiedName, options.file, depth);
     }
     if (!symbol) {
-        console.error('Error: callees requires a <symbol>, --uid, or --qualified-name + --file argument.');
-        process.exit(1);
+        throw new Error('callees requires a <symbol>, --uid, or --qualified-name + --file argument.');
     }
     return qe.callees(symbol, options.file, depth);
 }

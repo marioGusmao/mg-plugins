@@ -18,7 +18,7 @@ export interface SymbolRecord {
     line_end: number;
     exported: boolean;
 }
-export type SymbolKind = 'function' | 'class' | 'method' | 'variable' | 'type' | 'export' | 'doc_reference';
+export type SymbolKind = 'function' | 'class' | 'method' | 'variable' | 'type' | 'enum' | 'namespace' | 'export' | 'doc_reference';
 export interface EdgeRecord {
     id: number;
     source_uid: string;

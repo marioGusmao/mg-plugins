@@ -22,11 +22,12 @@ const CONFIG_FILES = ['tsconfig.json', 'package.json', 'pnpm-workspace.yaml'];
 // Indexer
 // ---------------------------------------------------------------------------
 /**
- * Orchestrates the 9-step hybrid indexing pipeline for a TypeScript/JavaScript
+ * Orchestrates the hybrid indexing pipeline for a TypeScript/JavaScript
  * project rooted at `projectRoot`.
  *
- * The pipeline is fully synchronous: better-sqlite3, tree-sitter, and all
- * file-system operations are sync, so no async ceremony is needed.
+ * Uses a two-pass approach inside a single transaction:
+ *   Pass 1: Parse files → persist file records + symbols
+ *   Pass 2: Resolve edges + file deps (all symbols now available as targets)
  */
 export class Indexer {
     projectRoot;
@@ -59,7 +60,7 @@ export class Indexer {
         const pattern = `**/*.{${extensions.map((e) => e.slice(1)).join(',')}}`;
         const discoveredFiles = globSync(pattern, {
             cwd: this.projectRoot,
-            ignore: ['node_modules/**', '.codegraph/**', 'dist/**'],
+            ignore: ['**/node_modules/**', '.codegraph/**', '**/dist/**'],
             absolute: false,
             nodir: true,
         });
@@ -69,14 +70,15 @@ export class Indexer {
             const configPath = path.join(this.projectRoot, configFile);
             const currentHash = this.hashFile(configPath);
             const storedHash = this.db.getConfigFingerprint(configFile);
-            if (currentHash !== storedHash) {
+            const normalizedCurrent = currentHash ?? '__absent__';
+            const normalizedStored = storedHash ?? '__absent__';
+            if (normalizedCurrent !== normalizedStored) {
                 forceFullIndex = true;
             }
             // Always update fingerprint regardless of match
-            this.db.setConfigFingerprint(configFile, currentHash ?? '');
+            this.db.setConfigFingerprint(configFile, normalizedCurrent);
         }
         // ── Step 3: Diff (hash comparison + git diff) ────────────────────────────
-        // Compute SHA-256 hash for each discovered file
         const fileHashes = new Map();
         for (const relPath of discoveredFiles) {
             const absPath = path.join(this.projectRoot, relPath);
@@ -85,28 +87,24 @@ export class Indexer {
                 fileHashes.set(relPath, hash);
             }
         }
-        // Determine which files to process
         let filesToProcess;
         if (!incremental || forceFullIndex) {
             filesToProcess = discoveredFiles.filter((f) => fileHashes.has(f));
         }
         else {
-            // Incremental: only changed or new files
             const changedByHash = this.diffByHash(fileHashes);
             const changedByGit = this.diffByGit();
             const changedSet = new Set([...changedByHash, ...changedByGit]);
             filesToProcess = discoveredFiles.filter((f) => fileHashes.has(f) && changedSet.has(f));
         }
-        // ── Prepare TSService for Step 5 (semantic analysis) ─────────────────────
+        // ── Prepare TSService for semantic analysis ─────────────────────────────
         let tsService = null;
         try {
             tsService = new TSService(this.projectRoot);
         }
         catch {
-            // tsconfig may be invalid or absent — fall back to syntactic-only
             tsService = null;
         }
-        // ── Steps 4-7: Per-file loop (parse → persist → semantic → resolve) ──────
         const stats = {
             filesProcessed: 0,
             symbolsFound: 0,
@@ -116,7 +114,26 @@ export class Indexer {
             referencesFound: 0,
         };
         const resolver = new Resolver(this.projectRoot);
+        // ── Discover doc files for cleanup and incremental ──────────────────────
+        const discoveredDocFiles = globSync('**/*.{md,mdx}', {
+            cwd: this.projectRoot,
+            ignore: ['**/node_modules/**', '.codegraph/**', '**/dist/**'],
+            absolute: false,
+            nodir: true,
+        });
+        // Collect inbound edges from other files BEFORE deleting symbols.
+        // These would be lost due to FK CASCADE when symbols are deleted.
+        // Track old→new UID mapping so edges survive line-number shifts
+        // (buildSymbolUid includes lineStart, so shifting code changes UIDs).
+        const savedInboundEdges = [];
+        const oldUidToNewUid = new Map();
+        // Map symbol identity (name:kind:container) → old UID, per file
+        const symbolKeyToOldUid = new Map();
         this.db.transaction(() => {
+            // ====================================================================
+            // PASS 1: Parse all files → persist file records + symbols
+            // ====================================================================
+            const parseResults = [];
             for (const relPath of filesToProcess) {
                 const absPath = path.join(this.projectRoot, relPath);
                 const ext = path.extname(relPath).toLowerCase();
@@ -126,7 +143,6 @@ export class Indexer {
                 const source = this.readFile(absPath);
                 if (source === null)
                     continue;
-                // Set grammar based on extension
                 const grammar = this.grammarForExtension(ext);
                 if (!grammar)
                     continue;
@@ -136,7 +152,6 @@ export class Indexer {
                 catch {
                     continue;
                 }
-                // ── Step 4: Parse with Tree-sitter (structural / syntactic) ──────────
                 let tree;
                 try {
                     tree = this.parser.parse(source);
@@ -147,16 +162,21 @@ export class Indexer {
                 const extractedSymbols = extractor.extractSymbols(tree, source);
                 const extractedEdges = extractor.extractEdges(tree, source);
                 const extractedImports = extractor.extractImports(tree, source);
-                // ── Step 4b: Persist file record ──────────────────────────────────────
                 const hash = fileHashes.get(relPath) ?? '';
                 const language = extractor.language;
-                // Clear old symbols/edges for this file before reinserting
+                // Save inbound edges and old symbol UIDs before cascade-deleting
                 const existingFile = this.db.getFileByPath(relPath);
                 if (existingFile) {
+                    savedInboundEdges.push(...this.db.getInboundEdgesFromOtherFiles(existingFile.id));
+                    // Save old UIDs keyed by symbol identity for remapping after reinsert
+                    const oldSymbols = this.db.getSymbolsByFile(existingFile.id);
+                    for (const s of oldSymbols) {
+                        symbolKeyToOldUid.set(`${relPath}:${s.name}:${s.kind}:${s.container_name}`, s.symbol_uid);
+                    }
                     this.db.deleteFileSymbolsAndEdges(existingFile.id);
                 }
                 const fileId = this.db.upsertFile({ path: relPath, language, hash });
-                // ── Step 4c: Persist symbols ──────────────────────────────────────────
+                // Persist symbols
                 const symbolUidMap = new Map();
                 for (const sym of extractedSymbols) {
                     const uid = buildSymbolUid(relPath, sym.container_name, sym.name, sym.kind, sym.line_start);
@@ -172,14 +192,50 @@ export class Indexer {
                         exported: sym.exported,
                     });
                     symbolUidMap.set(sym.qualified_name, uid);
+                    // Build old→new UID mapping for inbound edge restoration
+                    const symKey = `${relPath}:${sym.name}:${sym.kind}:${sym.container_name}`;
+                    const oldUid = symbolKeyToOldUid.get(symKey);
+                    if (oldUid && oldUid !== uid) {
+                        oldUidToNewUid.set(oldUid, uid);
+                    }
                     stats.symbolsFound++;
                 }
-                // ── Step 4d: Persist syntactic edges ──────────────────────────────────
-                for (const edge of extractedEdges) {
-                    const sourceUid = symbolUidMap.get(edge.sourceQualifiedName);
+                parseResults.push({
+                    relPath,
+                    absPath,
+                    fileId,
+                    extractedSymbols,
+                    extractedEdges,
+                    extractedImports,
+                    symbolUidMap,
+                });
+                stats.filesProcessed++;
+            }
+            // Restore inbound edges from other files that were cascade-deleted.
+            // Remap target UIDs in case line numbers shifted (UID includes lineStart).
+            for (const edge of savedInboundEdges) {
+                const remappedTarget = oldUidToNewUid.get(edge.target_uid) ?? edge.target_uid;
+                try {
+                    this.db.insertEdge({
+                        source_uid: edge.source_uid,
+                        target_uid: remappedTarget,
+                        kind: edge.kind,
+                        confidence: edge.confidence,
+                    });
+                }
+                catch {
+                    // Source or target symbol may no longer exist (renamed/removed) — skip
+                }
+            }
+            // ====================================================================
+            // PASS 2: Resolve edges + file deps (all symbols now in DB)
+            // ====================================================================
+            for (const pr of parseResults) {
+                // Syntactic edges
+                for (const edge of pr.extractedEdges) {
+                    const sourceUid = pr.symbolUidMap.get(edge.sourceQualifiedName);
                     if (!sourceUid)
                         continue;
-                    // Find a matching target symbol by name in the DB
                     const targetSymbols = this.db.getSymbolsByName(edge.targetName);
                     if (targetSymbols.length === 0)
                         continue;
@@ -190,130 +246,156 @@ export class Indexer {
                             kind: edge.kind,
                             confidence: 'syntactic',
                         });
-                        stats.syntacticEdges++;
                     }
                 }
-                // ── Step 5: Semantic edges via TS LanguageService ──────────────────────
+                // Semantic edges
                 if (tsService !== null) {
-                    this.insertSemanticEdges(tsService, absPath, relPath, extractedSymbols, symbolUidMap, stats);
+                    this.insertSemanticEdges(tsService, pr.absPath, pr.extractedSymbols, pr.symbolUidMap);
                 }
-                // ── Step 6: Resolve cross-file imports → file_deps ────────────────────
-                for (const imp of extractedImports) {
-                    const resolvedRelPath = resolver.resolveImportPath(imp.source, absPath);
+                // File deps
+                for (const imp of pr.extractedImports) {
+                    const resolvedRelPath = resolver.resolveImportPath(imp.source, pr.absPath);
                     if (!resolvedRelPath)
                         continue;
                     const targetFile = this.db.getFileByPath(resolvedRelPath);
                     if (!targetFile)
                         continue;
                     this.db.insertFileDep({
-                        source_id: fileId,
+                        source_id: pr.fileId,
                         target_id: targetFile.id,
                         kind: imp.kind,
                     });
                 }
-                stats.filesProcessed++;
             }
-            // ── Step 7: Cleanup deleted files (inside transaction for atomicity) ──
-            this.cleanupDeletedFiles(discoveredFiles);
+            // ====================================================================
+            // PASS 3: Index documentation (inside same transaction)
+            // ====================================================================
+            // If any symbol UIDs changed (line shifts), force full doc reindex
+            // so doc_reference edges point to the correct new UIDs.
+            const symbolsShifted = oldUidToNewUid.size > 0;
+            const docStats = this.indexDocumentationInTransaction(discoveredDocFiles, incremental && !forceFullIndex && !symbolsShifted);
+            stats.docsProcessed = docStats.docsProcessed;
+            stats.referencesFound = docStats.referencesFound;
+            // ── Cleanup deleted files (code + docs) ────────────────────────────────
+            this.cleanupDeletedFiles(discoveredFiles, discoveredDocFiles);
         });
         // Dispose TSService
         if (tsService !== null) {
             tsService.dispose();
         }
-        // ── Step 8: Store git metadata ────────────────────────────────────────────
+        // Derive accurate edge counts from DB state
+        const syntacticCount = this.db.prepare("SELECT COUNT(*) as cnt FROM edges WHERE confidence = 'syntactic'").get().cnt;
+        const semanticCount = this.db.prepare("SELECT COUNT(*) as cnt FROM edges WHERE confidence = 'semantic'").get().cnt;
+        stats.syntacticEdges = syntacticCount;
+        stats.semanticEdges = semanticCount;
+        // Store git metadata
         this.persistGitMeta();
-        // ── Step 9: Index documentation (.md/.mdx) ──────────────────────────────
-        const docStats = this.indexDocumentation();
-        stats.docsProcessed = docStats.docsProcessed;
-        stats.referencesFound = docStats.referencesFound;
         return stats;
     }
+    close() {
+        this.db.close();
+    }
+    // ---------------------------------------------------------------------------
+    // Documentation indexing (runs inside the main transaction)
+    // ---------------------------------------------------------------------------
     /**
-     * Step 9: Discover and index Markdown/MDX files.
-     *
-     * For each doc file:
-     * 1. Compute hash and upsert the file record (language: 'markdown')
-     * 2. Extract references to known code symbols
-     * 3. For each reference, create a doc_reference symbol and a `documents` edge
-     *    pointing from the doc_reference → the code symbol(s) with that name
+     * Index Markdown/MDX files inside the caller's transaction.
+     * In incremental mode, only re-processes changed doc files.
+     */
+    indexDocumentationInTransaction(docFiles, incremental) {
+        const knownSymbolNames = new Set(this.db.prepare('SELECT DISTINCT name FROM symbols WHERE kind != \'doc_reference\'').all()
+            .map(r => r.name));
+        let docsProcessed = 0;
+        let referencesFound = 0;
+        let docsToProcess;
+        if (incremental) {
+            // Only process changed/new doc files
+            docsToProcess = [];
+            for (const relPath of docFiles) {
+                const absPath = path.join(this.projectRoot, relPath);
+                const hash = this.hashFile(absPath);
+                if (hash === null)
+                    continue;
+                const record = this.db.getFileByPath(relPath);
+                if (!record || record.hash !== hash) {
+                    docsToProcess.push(relPath);
+                }
+            }
+        }
+        else {
+            docsToProcess = docFiles;
+        }
+        for (const relPath of docsToProcess) {
+            const absPath = path.join(this.projectRoot, relPath);
+            const source = this.readFile(absPath);
+            if (source === null)
+                continue;
+            const hash = this.hashFile(absPath);
+            if (hash === null)
+                continue;
+            const existingFile = this.db.getFileByPath(relPath);
+            if (existingFile) {
+                this.db.deleteFileSymbolsAndEdges(existingFile.id);
+            }
+            const fileId = this.db.upsertFile({ path: relPath, language: 'markdown', hash });
+            const docRefs = extractDocReferences(source, knownSymbolNames);
+            for (const ref of docRefs) {
+                const codeSymbols = this.db.getSymbolsByName(ref.symbolName);
+                if (codeSymbols.length === 0)
+                    continue;
+                const docSymUid = buildSymbolUid(relPath, ref.context, ref.symbolName, 'doc_reference', ref.line);
+                this.db.insertSymbol({
+                    file_id: fileId,
+                    symbol_uid: docSymUid,
+                    name: ref.symbolName,
+                    qualified_name: `${relPath}:${ref.line}:${ref.symbolName}`,
+                    container_name: ref.context,
+                    kind: 'doc_reference',
+                    line_start: ref.line,
+                    line_end: ref.line,
+                    exported: false,
+                });
+                for (const codeSym of codeSymbols) {
+                    if (codeSym.kind === 'doc_reference')
+                        continue;
+                    this.db.insertEdge({
+                        source_uid: docSymUid,
+                        target_uid: codeSym.symbol_uid,
+                        kind: 'documents',
+                        confidence: 'syntactic',
+                    });
+                    referencesFound++;
+                }
+            }
+            docsProcessed++;
+        }
+        return { docsProcessed, referencesFound };
+    }
+    /**
+     * Legacy public API — kept for backwards compatibility with tests/callers
+     * that call indexDocumentation() directly. Wraps in its own transaction.
      */
     indexDocumentation() {
         const docFiles = globSync('**/*.{md,mdx}', {
             cwd: this.projectRoot,
-            ignore: ['node_modules/**', '.codegraph/**', 'dist/**'],
+            ignore: ['**/node_modules/**', '.codegraph/**', '**/dist/**'],
             absolute: false,
             nodir: true,
         });
-        // Build a set of all known symbol names from the DB
-        const knownSymbolNames = new Set(this.db.prepare('SELECT DISTINCT name FROM symbols').all()
-            .map(r => r.name));
-        let docsProcessed = 0;
-        let referencesFound = 0;
+        let result = { docsProcessed: 0, referencesFound: 0 };
         this.db.transaction(() => {
-            for (const relPath of docFiles) {
-                const absPath = path.join(this.projectRoot, relPath);
-                const source = this.readFile(absPath);
-                if (source === null)
-                    continue;
-                const hash = this.hashFile(absPath);
-                if (hash === null)
-                    continue;
-                // Clear old symbols for this doc file before reinserting
-                const existingFile = this.db.getFileByPath(relPath);
-                if (existingFile) {
-                    this.db.deleteFileSymbolsAndEdges(existingFile.id);
-                }
-                const fileId = this.db.upsertFile({ path: relPath, language: 'markdown', hash });
-                const docRefs = extractDocReferences(source, knownSymbolNames);
-                for (const ref of docRefs) {
-                    // Find all code symbols matching this name
-                    const codeSymbols = this.db.getSymbolsByName(ref.symbolName);
-                    if (codeSymbols.length === 0)
-                        continue;
-                    // Create a doc_reference symbol for this doc location.
-                    // The context line is stored in container_name for retrieval by QueryEngine.
-                    const docSymUid = buildSymbolUid(relPath, ref.context, // stored in container_name
-                    ref.symbolName, 'doc_reference', ref.line);
-                    this.db.insertSymbol({
-                        file_id: fileId,
-                        symbol_uid: docSymUid,
-                        name: ref.symbolName,
-                        qualified_name: `${relPath}:${ref.line}:${ref.symbolName}`,
-                        container_name: ref.context,
-                        kind: 'doc_reference',
-                        line_start: ref.line,
-                        line_end: ref.line,
-                        exported: false,
-                    });
-                    // Link to all matching code symbols
-                    for (const codeSym of codeSymbols) {
-                        // Skip other doc_reference symbols to avoid doc→doc edges
-                        if (codeSym.kind === 'doc_reference')
-                            continue;
-                        this.db.insertEdge({
-                            source_uid: docSymUid,
-                            target_uid: codeSym.symbol_uid,
-                            kind: 'documents',
-                            confidence: 'syntactic',
-                        });
-                        referencesFound++;
-                    }
-                }
-                docsProcessed++;
-            }
+            result = this.indexDocumentationInTransaction(docFiles, false);
         });
-        return { docsProcessed, referencesFound };
+        return result;
     }
     // ---------------------------------------------------------------------------
     // Private helpers
     // ---------------------------------------------------------------------------
     /**
      * Insert semantic edges for a single file using the TS LanguageService.
-     * Semantic edges (confidence: 'semantic') overwrite syntactic ones for
-     * the same source_uid/target_uid pair — the DB layer handles this via
-     * DELETE before INSERT in `insertEdge`.
+     * All symbols are already in the DB (pass 2), so file-scoped filtering works.
      */
-    insertSemanticEdges(tsService, absPath, relPath, extractedSymbols, symbolUidMap, stats) {
+    insertSemanticEdges(tsService, absPath, extractedSymbols, symbolUidMap) {
         for (const sym of extractedSymbols) {
             if (sym.kind !== 'function' && sym.kind !== 'method')
                 continue;
@@ -329,10 +411,8 @@ export class Indexer {
             }
             for (const call of outgoingCalls) {
                 const calleeRelPath = path.relative(this.projectRoot, call.calleeFile);
-                // Find matching target symbol by name across all files
                 const targetSymbols = this.db.getSymbolsByName(call.calleeName);
                 for (const targetSym of targetSymbols) {
-                    // Prefer symbols from the callee file when path is known
                     const targetFile = this.db.getFileByPath(calleeRelPath);
                     if (targetFile && targetSym.file_id !== targetFile.id)
                         continue;
@@ -343,7 +423,6 @@ export class Indexer {
                             kind: 'calls',
                             confidence: 'semantic',
                         });
-                        stats.semanticEdges++;
                     }
                     catch {
                         // Edge may already exist or violate a constraint — skip
@@ -352,10 +431,6 @@ export class Indexer {
             }
         }
     }
-    /**
-     * Compare current file hashes against DB records.
-     * Returns relative paths of files that have changed or are new.
-     */
     diffByHash(fileHashes) {
         const changed = [];
         for (const [relPath, hash] of fileHashes) {
@@ -366,17 +441,12 @@ export class Indexer {
         }
         return changed;
     }
-    /**
-     * Use `git diff --name-only <last_indexed_commit>` to find files that have
-     * changed since the last index. Falls back to empty array when no git repo
-     * or no prior commit is stored.
-     */
     diffByGit() {
         const lastCommit = this.db.getMeta('last_indexed_commit');
         if (!lastCommit)
             return [];
         try {
-            const output = execFileSync('git', ['diff', '--name-only', lastCommit], { cwd: this.projectRoot, encoding: 'utf8', timeout: 5000 });
+            const output = execFileSync('git', ['diff', '--name-only', lastCommit], { cwd: this.projectRoot, encoding: 'utf8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe'] });
             return output
                 .split('\n')
                 .map((l) => l.trim())
@@ -386,13 +456,9 @@ export class Indexer {
             return [];
         }
     }
-    /**
-     * Store `git rev-parse HEAD` and the current ISO timestamp in DB meta.
-     * Silently skips when the project is not a git repository.
-     */
     persistGitMeta() {
         try {
-            const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: this.projectRoot, encoding: 'utf8', timeout: 5000 }).trim();
+            const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: this.projectRoot, encoding: 'utf8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
             this.db.setMeta('last_indexed_commit', commit);
         }
         catch {
@@ -401,11 +467,11 @@ export class Indexer {
         this.db.setMeta('last_indexed_at', new Date().toISOString());
     }
     /**
-     * Remove DB records for files that are no longer present on disk.
-     * The CASCADE constraint on symbols/edges handles dependent rows.
+     * Remove DB records for files no longer present on disk.
+     * Accepts both code files and doc files for complete cleanup.
      */
-    cleanupDeletedFiles(currentFiles) {
-        const currentSet = new Set(currentFiles);
+    cleanupDeletedFiles(currentCodeFiles, currentDocFiles) {
+        const currentSet = new Set([...currentCodeFiles, ...currentDocFiles]);
         const allDbFiles = this.db.getAllFiles();
         for (const dbFile of allDbFiles) {
             if (!currentSet.has(dbFile.path)) {
@@ -413,7 +479,6 @@ export class Indexer {
             }
         }
     }
-    /** Returns a sorted, deduplicated list of file extensions from all registered extractors. */
     collectExtensions() {
         const extSet = new Set();
         for (const extractor of this.extractors.values()) {
@@ -423,10 +488,6 @@ export class Indexer {
         }
         return Array.from(extSet).sort();
     }
-    /**
-     * Returns the tree-sitter grammar object for a given file extension.
-     * Returns null for unrecognized extensions.
-     */
     grammarForExtension(ext) {
         switch (ext) {
             case '.ts':
@@ -435,13 +496,11 @@ export class Indexer {
                 return tsGrammar.tsx;
             case '.js':
             case '.jsx':
-                // tree-sitter-javascript handles both JS and JSX
                 return jsGrammar;
             default:
                 return null;
         }
     }
-    /** Read a file synchronously, returning null on error. */
     readFile(absPath) {
         try {
             return fs.readFileSync(absPath, 'utf8');
@@ -450,10 +509,6 @@ export class Indexer {
             return null;
         }
     }
-    /**
-     * Compute SHA-256 hash of a file on disk.
-     * Returns null when the file does not exist or cannot be read.
-     */
     hashFile(absPath) {
         try {
             const content = fs.readFileSync(absPath);

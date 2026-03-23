@@ -19,7 +19,7 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 
 /**
  * Extract a scalar value for a given key from simple YAML content.
@@ -73,6 +73,63 @@ function extractList(yaml, key) {
   return [];
 }
 
+/**
+ * Extract enabled area keys from a nested YAML map:
+ * areas:
+ *   adr:
+ *     enabled: true
+ *
+ * Falls back to list parsing for legacy list-based configs.
+ *
+ * @param {string} yaml
+ * @returns {string[]}
+ */
+function extractEnabledAreas(yaml) {
+  const lines = yaml.split('\n');
+  const startIndex = lines.findIndex((line) => /^areas:\s*$/.test(line));
+  if (startIndex === -1) {
+    return extractList(yaml, 'areas');
+  }
+
+  const enabledAreas = [];
+
+  for (let i = startIndex + 1; i < lines.length; i += 1) {
+    const line = lines[i];
+
+    if (/^\S/.test(line)) {
+      break;
+    }
+
+    const areaMatch = line.match(/^  ([^:\s][^:]*):\s*$/);
+    if (!areaMatch) {
+      continue;
+    }
+
+    const areaName = areaMatch[1].trim();
+    let enabled = false;
+
+    for (let j = i + 1; j < lines.length; j += 1) {
+      const childLine = lines[j];
+
+      if (/^\S/.test(childLine) || /^  [^:\s][^:]*:\s*$/.test(childLine)) {
+        break;
+      }
+
+      const enabledMatch = childLine.match(/^\s+enabled:\s*(true|false)\s*$/);
+      if (enabledMatch) {
+        enabled = enabledMatch[1] === 'true';
+        break;
+      }
+    }
+
+    if (enabled) {
+      enabledAreas.push(areaName);
+    }
+  }
+
+  return enabledAreas.length > 0 ? enabledAreas : extractList(yaml, 'areas');
+}
+
 function main() {
   const projectRoot = process.env.CLAUDE_PROJECT_ROOT ?? process.cwd();
   const configPath = join(projectRoot, '.kdoc.yaml');
@@ -84,9 +141,8 @@ function main() {
 
   const yaml = readFileSync(configPath, 'utf8');
 
-  const projectName = extractScalar(yaml, 'name') ?? 'this project';
-  const version = extractScalar(yaml, 'version') ?? '';
-  const areas = extractList(yaml, 'areas');
+  const projectName = extractScalar(yaml, 'name') ?? basename(projectRoot) ?? 'this project';
+  const areas = extractEnabledAreas(yaml);
   const packs = extractList(yaml, 'packs');
   const tools = extractList(yaml, 'tools');
 
@@ -94,7 +150,7 @@ function main() {
 
   lines.push(`## kdoc Knowledge System Active`);
   lines.push('');
-  lines.push(`**Project:** ${projectName}${version ? ` v${version}` : ''}`);
+  lines.push(`**Project:** ${projectName}`);
   lines.push('');
 
   if (areas.length > 0) {

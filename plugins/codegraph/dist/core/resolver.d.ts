@@ -32,15 +32,12 @@ export declare class Resolver {
      */
     private tryExtensions;
     private loadTsConfigPaths;
-    /**
-     * Reads a tsconfig.json, resolving `extends` chains recursively.
-     * Child compilerOptions override parent.
-     */
-    private readTsConfig;
     private loadWorkspacePackages;
     /**
      * Expands workspace glob patterns (e.g. "packages/*") into a
      * package-name -> relative-root map by reading each matching directory's package.json.
      */
     private expandWorkspaceGlobs;
+    private toProjectRelative;
+    private normalizePath;
 }
