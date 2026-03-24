@@ -6,6 +6,12 @@ metadata:
   bashPattern: "kdoc init|kdoc add"
 ---
 
+## Prerequisites
+
+- **Node.js** >= 20
+- **kdoc CLI**: `npx kdoc --version` must succeed. Install via `pnpm install` in the `cli/` directory if needed.
+- **Knowledge directory**: A `Knowledge/` directory should exist at the project root. Run `npx kdoc init` if missing.
+
 # kdoc:scaffold — Knowledge Structure Scaffold
 
 Use this skill when the user asks to scaffold Knowledge docs, run `kdoc init`, or add a Knowledge area/pack/tool.
@@ -51,3 +57,17 @@ Use this skill when the user asks to scaffold Knowledge docs, run `kdoc init`, o
 - `kdoc:governance-check` — health check after scaffold
 - `kdoc:adr-create` — create first ADR after scaffold
 - `kdoc:tldr-create` — create first TLDR after scaffold
+
+## Autonomy Mode
+
+When invoked by an automated agent (workshop orchestrator, CI pipeline, or batch process) rather than interactive user input:
+
+1. **Deterministic inference**: Infer all required parameters from available context (git history, file structure, existing Knowledge/ content) instead of prompting the user. If a parameter cannot be inferred with reasonable confidence, use sensible defaults and note the assumption.
+
+2. **Repo-scan first**: Before generating any content, scan the repository for relevant context:
+   - `git log --oneline -20` for recent changes
+   - Existing Knowledge/ structure and naming patterns
+   - Package.json / project configuration for module names
+   - Existing ADRs/TLDRs for numbering and style consistency
+
+3. **Structured output**: Always produce valid frontmatter with all required fields populated. Emit the file path as the first line of output so callers can locate the artifact.

@@ -6,6 +6,12 @@ metadata:
   bashPattern: "kdoc:adr:check|check_adr_governance"
 ---
 
+## Prerequisites
+
+- **Node.js** >= 20
+- **kdoc CLI**: `npx kdoc --version` must succeed. Install via `pnpm install` in the `cli/` directory if needed.
+- **Knowledge directory**: A `Knowledge/` directory should exist at the project root. Run `npx kdoc init` if missing.
+
 # kdoc:adr-validate — Validate ADR Governance
 
 Use this skill when the user asks to validate ADRs, check ADR numbering, or audit the ADR directory.

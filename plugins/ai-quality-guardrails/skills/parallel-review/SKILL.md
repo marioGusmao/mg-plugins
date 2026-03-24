@@ -4,6 +4,13 @@ description: This skill should be used when the user asks for a thorough review,
 version: 1.0.0
 ---
 
+## Prerequisites
+
+- **No runtime dependencies** — this is a pure instruction/skill package (Markdown + YAML frontmatter)
+- Works with any AI coding assistant that supports skill/instruction injection
+- For maximum effectiveness, pair with a test runner available in the project (jest, vitest, pytest, go test, etc.)
+
+
 # Parallel Review Perspectives
 
 Launch multiple reviewers in parallel for comprehensive coverage.

@@ -6,6 +6,12 @@ metadata:
   bashPattern: "kdoc create threat-model"
 ---
 
+## Prerequisites
+
+- **Node.js** >= 20
+- **kdoc CLI**: `npx kdoc --version` must succeed. Install via `pnpm install` in the `cli/` directory if needed.
+- **Knowledge directory**: A `Knowledge/` directory should exist at the project root. Run `npx kdoc init` if missing.
+
 # kdoc:create-threat-model — Create Threat Model
 
 Use this skill when the user asks to threat model a feature, create a security analysis, or document attack vectors.

@@ -8,7 +8,7 @@
     {
       "name": "ai-quality-guardrails",
       "description": "Quality guardrails for AI-assisted development: TDD enforcement, iterative review loops, AI code scrutiny, spec-driven planning, and self-review patterns.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "./plugins/ai-quality-guardrails",
       "category": "development",
       "keywords": ["quality", "tdd", "code-review", "ai-safety", "spec-driven", "guardrails"]
@@ -24,7 +24,7 @@
     {
       "name": "codegraph",
       "description": "Code intelligence plugin — call-chain analysis, blast radius, dependency graph queries, and codebase briefings via MCP. Hybrid indexing with Tree-sitter + TypeScript LanguageService.",
-      "version": "1.1.5",
+      "version": "1.1.6",
       "source": "./plugins/codegraph",
       "category": "development",
       "keywords": ["code-intelligence", "call-graph", "blast-radius", "mcp", "tree-sitter", "typescript", "static-analysis"]
@@ -32,7 +32,7 @@
     {
       "name": "kdoc",
       "description": "Knowledge documentation toolkit — scaffold, maintain, and govern project documentation structures",
-      "version": "1.0.7",
+      "version": "1.0.8",
       "source": "./plugins/kdoc",
       "category": "development",
       "keywords": []

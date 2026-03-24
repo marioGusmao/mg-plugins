@@ -3,6 +3,14 @@ name: codegraph
 description: Use when about to refactor, rename, or change function signatures — runs blast radius and caller analysis before editing to understand cross-file impact. Also use when exploring unfamiliar code to trace call chains and dependencies. Use codegraph_brief at the start of sessions for instant codebase understanding.
 ---
 
+## Prerequisites
+
+- **Node.js** >= 20
+- **C++ toolchain**: Required for native Tree-sitter bindings (`npm install` compiles them)
+- **CodeGraph CLI**: Build with `cd <plugin-dir> && npm install && npm run build`
+- **MCP server**: Registered in `.claude/.mcp.json` or via `codegraph setup --claude`
+- **Project indexed**: Run `codegraph index --project <root>` (creates `.codegraph/graph.db`)
+
 # CodeGraph — Code Intelligence Skill
 
 Use the CodeGraph MCP tools to understand code relationships before making changes. CodeGraph indexes both **code** (TS/JS via Tree-sitter + TypeScript LanguageService) and **documentation** (Markdown files that reference code symbols).

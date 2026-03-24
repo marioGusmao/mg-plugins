@@ -4,6 +4,13 @@ description: This skill should be used after any review (plan review, implementa
 version: 1.0.0
 ---
 
+## Prerequisites
+
+- **No runtime dependencies** — this is a pure instruction/skill package (Markdown + YAML frontmatter)
+- Works with any AI coding assistant that supports skill/instruction injection
+- For maximum effectiveness, pair with a test runner available in the project (jest, vitest, pytest, go test, etc.)
+
+
 # Review Loop with Quality Threshold
 
 Apply iterative review gating to catch issues that single-pass reviews miss.
@@ -16,14 +23,17 @@ See the plugin's `docs/RESEARCH.md` for sourced statistics.
 
 ## Severity Definitions
 
-All gating depends on consistent severity classification:
+All gating depends on consistent severity classification (aligned with the unified severity scale used across spec-workshop and ai-quality-guardrails):
 
 | Severity | Criteria | Examples |
 |---|---|---|
-| **critical** | Security breach, data loss, corruption, production outage risk | SQL injection, auth bypass, data deletion without confirmation |
-| **high** | Functional breakage, clear regression, or blocking defect | Wrong return value, missing error handling on critical path, broken API contract |
-| **medium** | Reliability, performance, or maintainability risk likely to cause future defects | N+1 query, missing index, unclear error message, brittle test |
-| **low** | Minor quality or documentation inconsistency with limited impact | Naming convention violation, missing comment, unused import |
+| **CRITICAL** | Security breach, data loss, corruption, production outage risk | SQL injection, auth bypass, data deletion without confirmation |
+| **HIGH** | Functional breakage, clear regression, or blocking defect | Wrong return value, missing error handling on critical path, broken API contract |
+| **MEDIUM** | Reliability, performance, or maintainability risk likely to cause future defects | N+1 query, missing index, unclear error message, brittle test |
+| **LOW** | Minor quality or documentation inconsistency with limited impact | Naming convention violation, missing comment, unused import |
+| **PASS** | Verified correct or adequately handled area | — |
+
+When in doubt between two severities, choose the higher one if the issue can block safe delivery.
 
 ## Pre-Gate Check: TDD Compliance (implementation and code reviews only)
 

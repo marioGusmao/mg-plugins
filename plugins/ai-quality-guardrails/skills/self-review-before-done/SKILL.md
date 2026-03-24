@@ -4,6 +4,13 @@ description: This skill should be used when an agent is about to return implemen
 version: 1.0.0
 ---
 
+## Prerequisites
+
+- **No runtime dependencies** — this is a pure instruction/skill package (Markdown + YAML frontmatter)
+- Works with any AI coding assistant that supports skill/instruction injection
+- For maximum effectiveness, pair with a test runner available in the project (jest, vitest, pytest, go test, etc.)
+
+
 # Self-Review Before Done
 
 Validate output before claiming completion.
