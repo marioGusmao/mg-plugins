@@ -7,10 +7,11 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
+import { resolveProjectRoot, resolvePluginRoot } from './resolve-root.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || path.resolve(__dirname, '..');
-const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const pluginRoot = resolvePluginRoot(__dirname);
+const projectDir = resolveProjectRoot();
 
 const cliPath = path.join(pluginRoot, 'dist', 'cli', 'index.js');
 

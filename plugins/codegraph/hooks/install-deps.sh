@@ -52,8 +52,16 @@ if [ "$needs_install" = true ]; then
   cp "$src_pkg" .
   [ -f "$PLUGIN_ROOT/package-lock.json" ] && cp "$PLUGIN_ROOT/package-lock.json" .
 
-  if ! npm install --production --no-audit --no-fund 2>&1; then
-    echo "[CodeGraph] Failed to install dependencies. Native modules (tree-sitter, better-sqlite3) require a C++ toolchain." >&2
+  # --ignore-scripts avoids running "prepare"/"build" which need source code not present here
+  if ! npm install --omit=dev --ignore-scripts --no-audit --no-fund 2>&1; then
+    echo "[CodeGraph] Failed to install dependencies." >&2
+    rm -f "$data_pkg" "$abi_marker"
+    exit 0
+  fi
+
+  # Rebuild native modules (better-sqlite3, tree-sitter) for the current Node ABI
+  if ! npm rebuild better-sqlite3 tree-sitter tree-sitter-typescript tree-sitter-javascript 2>&1; then
+    echo "[CodeGraph] Failed to rebuild native modules. Requires a C++ toolchain." >&2
     rm -f "$data_pkg" "$abi_marker"
     exit 0
   fi

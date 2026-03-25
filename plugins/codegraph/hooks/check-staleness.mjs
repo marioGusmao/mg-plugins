@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
+import { resolveProjectRoot, resolvePluginRoot } from './resolve-root.mjs';
 
 let input = '';
 try { input = fs.readFileSync('/dev/stdin', 'utf-8'); } catch { process.exit(0); }
@@ -13,8 +14,8 @@ if (!filePath) process.exit(0);
 
 try {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || path.resolve(__dirname, '..');
-  const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+  const pluginRoot = resolvePluginRoot(__dirname);
+  const projectDir = resolveProjectRoot();
 
   // Skip if file is outside the project directory (avoids false positives)
   const absFile = path.resolve(filePath);

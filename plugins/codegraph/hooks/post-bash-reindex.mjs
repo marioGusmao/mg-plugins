@@ -8,6 +8,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
+import { resolveProjectRoot, resolvePluginRoot } from './resolve-root.mjs';
 
 let input = '';
 try {
@@ -37,7 +38,7 @@ if (!shouldReindex) {
   process.exit(0);
 }
 
-const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const projectDir = resolveProjectRoot();
 const dbPath = path.join(projectDir, '.codegraph', 'graph.db');
 
 // Only re-index if an index already exists
@@ -46,7 +47,7 @@ if (!fs.existsSync(dbPath)) {
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || path.resolve(__dirname, '..');
+const pluginRoot = resolvePluginRoot(__dirname);
 const cliPath = path.join(pluginRoot, 'dist', 'cli', 'index.js');
 
 if (!fs.existsSync(cliPath)) {

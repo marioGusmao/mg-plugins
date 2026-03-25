@@ -55,9 +55,10 @@ if (oldString.length > 10000) {
 }
 
 // --- Setup paths ---
+import { resolveProjectRoot, resolvePluginRoot } from './resolve-root.mjs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || path.resolve(__dirname, '..');
-const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const pluginRoot = resolvePluginRoot(__dirname);
+const projectDir = resolveProjectRoot();
 const cliPath = path.join(pluginRoot, 'dist', 'cli', 'index.js');
 const dbPath = path.join(projectDir, '.codegraph', 'graph.db');
 
