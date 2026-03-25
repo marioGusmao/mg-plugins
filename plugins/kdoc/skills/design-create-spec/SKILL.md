@@ -1,82 +1,32 @@
 ---
 name: kdoc:design-create-spec
-description: Create a design specification (page spec, screen spec, or flow spec) for a UI component or user flow. Detects the active pack and uses the correct template.
+description: Create a page, screen, or flow specification by detecting the active pack, reading the relevant template, and writing a schema-aware design doc. Use when the user asks to create a page spec, create a screen spec, create a design spec, or create a flow spec.
 metadata:
-  filePattern: "Knowledge/Design/**/*.md"
-  bashPattern: "kdoc create"
+  filePattern: "Knowledge/Design/**"
+  bashPattern: "create page spec|create screen spec|create design spec|create flow spec"
 ---
 
-## Prerequisites
+# kdoc:design-create-spec
 
-- **Node.js** >= 20
-- **kdoc CLI**: `npx kdoc --version` must succeed. Install via `pnpm install` in the `cli/` directory if needed.
-- **Knowledge directory**: A `Knowledge/` directory should exist at the project root. Run `npx kdoc init` if missing.
-
-# kdoc:design-create-spec — Create Design Specification
-
-Use this skill when the user asks to create a page spec, screen spec, or flow spec.
-
-## When to Use
-
-- "create page spec" / "create screen spec" / "design spec for <X>"
-- "spec the checkout flow" / "document the onboarding flow"
-- "create route contract for <API endpoint>"
-
-## Pack Detection
-
-Check `.kdoc.yaml` for the active pack(s):
-- `nextjs` — use `page-spec.md` or `flow-spec.md` from `packs/nextjs/templates/`
-- `swift-ios` — use `screen-spec.md` or `flow-spec.md` from `packs/swift-ios/templates/`
-- Multi-pack — ask the user which platform this spec is for.
-
-If no pack template is found:
-- For flow specs, fall back to the generic template via `kdoc create flow-spec "<name>"`. This writes `Knowledge/Design/<slug>-flow.md`.
-- For page/screen specs, report clearly that the relevant pack template is required.
-
-## Output Path Convention
-
-Design specs are always namespaced by pack:
-- nextjs page: `Knowledge/Design/nextjs/{scope}/{page-name}.md`
-- nextjs flow: `Knowledge/Design/nextjs/{scope}/{flow-name}-flow.md`
-- swift-ios screen: `Knowledge/Design/swift-ios/{scope}/{screen-name}.md`
-- swift-ios flow: `Knowledge/Design/swift-ios/{scope}/{flow-name}-flow.md`
-
-Generic fallback:
-- pack-less flow: `Knowledge/Design/{flow-name}-flow.md`
-
-The scope is the app area (e.g., `admin`, `shop`, `app`, `shared`).
+Use this skill to create design specifications without relying on CLI commands.
 
 ## Workflow
 
-1. Detect pack from `.kdoc.yaml`.
-2. Ask (or infer from context): spec type (page/screen/flow), scope, name.
-3. Read the appropriate template from `packs/{pack}/templates/`.
-   If no pack is installed and the request is for a flow spec, use the generic `core/templates/flow-spec.md`.
-4. Fill in available fields from context; leave unfilled sections as placeholders.
-5. Write to the correct path under `Knowledge/Design/{pack}/{scope}/` or the generic fallback path for pack-less flow specs.
-
-## nextjs Page Spec Template Fields
-
-| Field | Description |
-|-------|-------------|
-| Route | URL path (e.g., `/admin/coupons`) |
-| Layout | Which layout wraps this page |
-| Components | List of main components |
-| Data sources | Server Actions or API calls |
-| Tokens | Design tokens used |
-| Responsive | Breakpoint behavior |
-| Accessibility | WCAG requirements |
-
-## swift-ios Screen Spec Template Fields
-
-| Field | Description |
-|-------|-------------|
-| Navigation | How the user arrives at this screen |
-| Components | UIKit/SwiftUI components |
-| State | Screen state variants |
-| Accessibility | VoiceOver / Dynamic Type |
+1. Read `.kdoc.yaml` to detect installed packs and available scopes.
+2. Read `core/schema/frontmatter-schemas.json` for the closest matching frontmatter contract used by the target design document.
+3. Read the relevant template:
+   - `packs/nextjs/templates/page-spec.md` or `packs/nextjs/templates/flow-spec.md`
+   - `packs/swift-ios/templates/screen-spec.md` or `packs/swift-ios/templates/flow-spec.md`
+   - Fallback only for flows: `core/templates/flow-spec.md`
+4. Choose the output path based on the active pack and scope.
+5. Write the design document using the selected template.
+6. Post-write validation:
+   - Read the file back.
+   - Verify required frontmatter fields.
+   - Verify the path matches the chosen pack/scope layout.
+7. If MCP is available, optionally run `kdoc_validate`. The skill must still work without MCP.
 
 ## Related Skills
 
-- `kdoc:tldr-create` — create requirements doc alongside spec
-- `kdoc:governance-check` — validates Design area structure
+- `kdoc:tldr-create`
+- `kdoc:governance-check`

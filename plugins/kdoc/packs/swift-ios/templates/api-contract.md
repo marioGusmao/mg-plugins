@@ -6,7 +6,7 @@ status: draft
 date: YYYY-MM-DD
 owner: ''
 tags: []
-summary: ''
+summary: "{{ENDPOINT_NAME}} — API contract specification."
 ---
 
 # API Contract: {{ENDPOINT_NAME}}

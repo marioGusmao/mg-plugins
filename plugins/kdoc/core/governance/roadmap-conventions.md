@@ -1,3 +1,9 @@
+---
+version: "1.0.0"
+date: "2026-03-24"
+summary: "Defines the canonical roadmap file layout, automation markers, and status semantics."
+---
+
 # Roadmap Conventions
 
 The roadmap structure organizes work into phases and sub-phases with machine-readable dependency tracking.
@@ -6,7 +12,9 @@ The roadmap structure organizes work into phases and sub-phases with machine-rea
 
 ```
 Roadmap/
-├── README.md              # Entry point — progress dashboard + cross-phase graph
+├── README.md              # Entry point — roadmap overview and references
+├── generated/
+│   └── dashboard.md       # Generated progress dashboard
 └── phases/
     ├── phase-1.md         # Phase-level card
     └── phase-1/
@@ -31,7 +39,7 @@ These comment markers are consumed by `build_index.py` and related roadmap scrip
 
 | Marker | Location | Purpose |
 | ------ | -------- | ------- |
-| `<!-- ROADMAP_AUTOGEN:START -->` / `<!-- ROADMAP_AUTOGEN:END -->` | `Roadmap/README.md` | Generated progress dashboard table |
+| `<!-- ROADMAP_AUTOGEN:START -->` / `<!-- ROADMAP_AUTOGEN:END -->` | `Roadmap/generated/dashboard.md` | Generated progress dashboard table |
 | `<!-- SUBPHASE_AUTOGEN:START -->` / `<!-- SUBPHASE_AUTOGEN:END -->` | Phase cards | Generated sub-phase summary table |
 | `<!-- dependency-graph ... -->` | Phase cards | Machine-readable DAG for ordering |
 

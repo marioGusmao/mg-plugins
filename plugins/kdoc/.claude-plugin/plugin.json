@@ -1,11 +1,12 @@
 {
   "name": "kdoc",
-  "description": "Knowledge documentation toolkit — scaffold, maintain, and govern project documentation structures",
+  "description": "Knowledge documentation toolkit with a governance engine, MCP server (7 tools), and ai-sessions daemon integration",
   "version": "1.0.8",
   "author": {
     "name": "MRM"
   },
   "skills": "./skills/",
+  "mcpServers": "./mcp/mcp.json",
   "agents": [
     "./agents/claude-code/adr-auditor.md",
     "./agents/claude-code/knowledge-auditor.md",

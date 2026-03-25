@@ -6,7 +6,7 @@ status: draft
 date: YYYY-MM-DD
 owner: ''
 tags: []
-summary: ''
+summary: "<RecipeTitle> — implementation recipe."
 ---
 
 # Recipe: <RecipeTitle>

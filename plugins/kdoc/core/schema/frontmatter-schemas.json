@@ -1,17 +1,20 @@
 {
   "description": "Frontmatter field definitions per document type. Consumed by kdoc doctor and governance scripts.",
   "version": "1",
+  "field_values": {
+    "security-tier": ["public", "internal", "confidential", "critical"]
+  },
   "types": {
     "adr": {
       "required": ["type", "id", "status", "date", "summary"],
-      "optional": ["superseded-by", "supersedes", "open-questions-status", "linear", "tags"],
+      "optional": ["superseded-by", "supersedes", "open-questions-status", "linear", "tags", "security-tier"],
       "status_values": ["proposed", "accepted", "deprecated", "superseded"],
       "id_pattern": "^ADR-\\d{4}$"
     },
     "feature": {
       "required": ["type", "area", "id", "status", "summary"],
-      "optional": ["linear", "tags", "module_path", "package_path", "core_paths", "api_paths"],
-      "status_values": ["draft", "in_progress", "ready", "done", "blocked"],
+      "optional": ["linear", "tags", "module_path", "package_path", "core_paths", "api_paths", "security-tier"],
+      "status_values": ["draft", "in_progress", "ready", "done", "blocked", "deprecated"],
       "gap_tracking_tags": [
         "has-open-questions",
         "missing-test-scenarios",
@@ -21,13 +24,13 @@
     },
     "phase": {
       "required": ["type", "area", "id", "status", "summary"],
-      "optional": ["depends_on", "last_reviewed", "sub_phases", "work_units_total", "next_work_units", "tags"],
+      "optional": ["depends_on", "last_reviewed", "sub_phases", "work_units_total", "next_work_units", "tags", "security-tier"],
       "status_values": ["pending", "in-progress", "completed", "completed_with_notes"]
     },
     "sub-phase": {
       "required": ["type", "area", "id", "parent_phase", "status", "summary"],
-      "optional": ["blocked_by", "parallel_with", "tags"],
-      "status_values": ["pending", "in-progress", "completed"]
+      "optional": ["blocked_by", "parallel_with", "tags", "security-tier"],
+      "status_values": ["pending", "in-progress", "completed", "completed_with_notes"]
     },
     "runbook": {
       "required": ["type", "status", "summary"],
@@ -36,7 +39,7 @@
     },
     "threat-model": {
       "required": ["type", "area", "id", "status", "summary"],
-      "optional": ["linear", "tags"],
+      "optional": ["linear", "tags", "security-tier"],
       "status_values": ["draft", "reviewed", "approved"]
     },
     "reference": {

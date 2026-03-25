@@ -1,3 +1,9 @@
+---
+version: "1.0.0"
+date: "2026-03-24"
+summary: "Defines the TLDR status lifecycle, readiness rules, and gap-tracking expectations."
+---
+
 # TLDR Lifecycle
 
 TLDR files document functional requirements for individual features. This reference covers status taxonomy, readiness rules, and gap-tracking conventions.

@@ -1,73 +1,33 @@
 ---
 name: kdoc:adr-validate
-description: Validate all ADRs for numbering integrity, cross-references, supersession chains, and status lifecycle. Use when suspecting ADR numbering issues or before a PR review.
+description: Validate ADR numbering, frontmatter, supersession chains, and wikilink references by scanning ADR files directly. Use when the user asks to validate ADRs, check ADR governance, or audit the ADR directory.
 metadata:
-  filePattern: "Knowledge/ADR/ADR-*.md"
-  bashPattern: "kdoc:adr:check|check_adr_governance"
+  filePattern: "Knowledge/ADR/**"
+  bashPattern: "kdoc doctor|check ADR governance|validate ADRs"
 ---
 
-## Prerequisites
+# kdoc:adr-validate
 
-- **Node.js** >= 20
-- **kdoc CLI**: `npx kdoc --version` must succeed. Install via `pnpm install` in the `cli/` directory if needed.
-- **Knowledge directory**: A `Knowledge/` directory should exist at the project root. Run `npx kdoc init` if missing.
-
-# kdoc:adr-validate — Validate ADR Governance
-
-Use this skill when the user asks to validate ADRs, check ADR numbering, or audit the ADR directory.
-
-## When to Use
-
-- "validate ADRs" / "check ADR governance" / "audit ADR directory"
-- After creating or modifying ADRs
-- Before a PR that includes ADR changes
+Use this skill to validate ADRs with direct file inspection only.
 
 ## Workflow
 
-1. Run the ADR governance script if available:
-   ```bash
-   npx kdoc doctor
-   ```
-   Note: There is no separate `kdoc:adr:check` script. Use `npx kdoc doctor` which includes ADR governance checks, or fall back to `python3 scripts/kdoc/check_adr_governance.py` if the Python scripts are installed.
-
-2. If the script is not installed, perform manual checks:
-
-   **Numbering integrity:**
-   - Glob `Knowledge/ADR/ADR-*.md` and sort.
-   - Extract NNNN from each filename.
-   - Verify no duplicates (same number, different slug).
-   - Report gaps (non-sequential numbers) — gaps are allowed but should be noted.
-
-   **Frontmatter completeness:**
-   - Each ADR must have: `id`, `title`, `date`, `status`.
-   - `id` in frontmatter must match the filename NNNN.
-
-   **Status validity:**
-   - Valid statuses: `proposed`, `accepted`, `rejected`, `superseded`.
-   - If status is `superseded`, the file should reference the superseding ADR.
-
-   **Supersession chain integrity:**
-   - If ADR-X says `supersedes: ADR-Y`, then ADR-Y must exist and its status should be `superseded`.
-   - No circular supersession chains.
-
-   **Cross-reference validity:**
-   - Wikilinks `[[ADR-NNNN]]` inside ADRs must resolve to existing files.
-
-3. Report all findings:
-   - PASS: "ADR numbering is sequential (N ADRs, no duplicates)"
-   - WARN: "Gap detected at NNNN" (acceptable, just informational)
-   - FAIL: "Duplicate number", "Missing frontmatter field", "Broken supersession chain"
-
-## What to Do on Failures
-
-| Failure | Fix |
-|---------|-----|
-| Duplicate NNNN | Renumber one ADR and update all references |
-| Missing frontmatter field | Add the field with correct value |
-| Broken supersession | Fix the `supersedes` reference or update status |
-| Broken wikilink | Fix the `[[ADR-NNNN]]` reference in the file |
+1. Read `core/schema/frontmatter-schemas.json` and use the `adr` contract for required fields, statuses, and ID rules.
+2. Glob `Knowledge/ADR/ADR-*.md`.
+3. For each ADR:
+   - Read the frontmatter.
+   - Verify required fields exist.
+   - Verify the `id` matches the filename.
+   - Verify `status` is allowed by the schema.
+4. Validate directory-level integrity:
+   - Detect duplicate ADR numbers.
+   - Note numbering gaps as informational only.
+   - Verify `supersedes` or `superseded_by` references point to existing ADRs when present.
+   - Grep ADR wikilinks and flag broken ADR references.
+5. Report findings as PASS/WARN/FAIL.
+6. If MCP is available, optionally use `kdoc_health` or `kdoc_validate` to confirm the manual findings. The skill must still work without MCP.
 
 ## Related Skills
 
-- `kdoc:adr-create` — create a new ADR
-- `kdoc:governance-check` — full Knowledge health check
+- `kdoc:adr-create`
+- `kdoc:governance-check`

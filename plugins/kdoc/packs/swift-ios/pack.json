@@ -20,7 +20,15 @@
   "areas": {
     "design": {
       "token-format": "ios-semantic",
-      "scope-axis": "inner"
+      "scope-axis": "inner",
+      "design_paths": {
+        "baseDirectory": "Design",
+        "scopeAxis": "inner",
+        "specs": "Design/{scope}",
+        "tokens": "Design/tokens",
+        "standards": "Design/standards",
+        "templates": ["screen-spec.md", "flow-spec.md", "api-contract.md"]
+      }
     }
   },
   "roadmap": {

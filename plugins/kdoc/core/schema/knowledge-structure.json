@@ -27,7 +27,13 @@
       "description": "Phase-based project roadmap",
       "directory": "Roadmap",
       "required": ["README.md"],
-      "optional": ["phases/"],
+      "optional": ["phases/", "generated/"],
+      "filenameRules": {
+        "phase": "phases/phase-{id}.md",
+        "sub-phase": "phases/phase-{id}/{subId}.md",
+        "id_pattern": "[A-Za-z0-9._-]+",
+        "dashboard": "generated/dashboard.md"
+      },
       "templates": {
         "README.md": "core/templates/readme-roadmap.md",
         "phases/phase-*.md": "core/templates/phase.md",
@@ -86,11 +92,30 @@
       "required": ["INDEX.md"],
       "templates": {}
     },
+    "design": {
+      "description": "Design specifications (page specs, screen specs, flow specs)",
+      "directory": "Design",
+      "required": [],
+      "scoped": true,
+      "templates": {
+        "**/*.md": "core/templates/flow-spec.md"
+      }
+    },
     "governance": {
       "description": "Governance reference documents (installed into Knowledge/governance/)",
       "directory": "governance",
       "required": [],
       "templates": {}
+    }
+  },
+  "extension_areas": {
+    "description": "Schema for user-defined extension areas declared in .kdoc.yaml",
+    "item_schema": {
+      "name": { "type": "string", "required": true },
+      "directory": { "type": "string", "required": true },
+      "templates": { "type": "array", "items": "string", "required": false },
+      "required_files": { "type": "array", "items": "string", "required": false },
+      "scoped": { "type": "boolean", "required": false, "default": false }
     }
   }
 }

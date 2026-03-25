@@ -6,7 +6,7 @@ status: draft
 date: YYYY-MM-DD
 owner: ''
 tags: []
-summary: ''
+summary: "{{FLOW_NAME}} — multi-step flow specification."
 ---
 
 # Flow Spec: {{FLOW_NAME}}

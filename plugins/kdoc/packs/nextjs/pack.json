@@ -20,7 +20,15 @@
   },
   "areas": {
     "design": {
-      "subfolders": ["tokens", "standards"]
+      "subfolders": ["tokens", "standards"],
+      "design_paths": {
+        "baseDirectory": "Design",
+        "scopeAxis": "outer",
+        "specs": "Design/{scope}",
+        "tokens": "Design/tokens",
+        "standards": "Design/standards",
+        "templates": ["page-spec.md", "flow-spec.md", "route-contract.md"]
+      }
     }
   },
   "roadmap": {

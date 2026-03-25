@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "kdoc": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/cli/dist/index.js", "mcp"]
+    }
+  }
+}

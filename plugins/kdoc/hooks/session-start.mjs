@@ -12,122 +12,59 @@
  *
  * Environment:
  * - CLAUDE_PROJECT_ROOT: project root override (falls back to process.cwd())
- *
- * Note: metadata.filePattern / metadata.bashPattern in SKILL.md frontmatter
- * are kdoc conventions for future tooling — not native Claude Code features.
- * This hook reads .kdoc.yaml directly using Node.js built-ins only.
  */
 
 import { readFileSync, existsSync } from 'node:fs';
 import { basename, join } from 'node:path';
+import { homedir } from 'node:os';
+import { parse } from 'yaml';
 
-/**
- * Extract a scalar value for a given key from simple YAML content.
- * Handles both unquoted and quoted values.
- * Returns null if the key is not found.
- *
- * @param {string} yaml
- * @param {string} key
- * @returns {string | null}
- */
-function extractScalar(yaml, key) {
-  const pattern = new RegExp(
-    `^${key}:\\s*(?:"([^"]*)"|(\\S[^\\n]*?))\\s*$`,
-    'm'
-  );
-  const match = yaml.match(pattern);
-  if (!match) return null;
-  return (match[1] ?? match[2] ?? '').trim() || null;
+const SPOOL_DIR = join(homedir(), '.ai-sessions', 'spool');
+const SPOOL_FILE = join(SPOOL_DIR, 'events.jsonl');
+
+function formatRelativeAge(iso) {
+  const ts = Date.parse(iso);
+  if (Number.isNaN(ts)) return 'recently';
+
+  const deltaMs = Date.now() - ts;
+  if (deltaMs < 0) return 'just now';
+
+  const minutes = Math.floor(deltaMs / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
-/**
- * Extract a list value for a given key from simple YAML content.
- * Handles both inline lists ([a, b, c]) and block lists (- item per line).
- * Returns an empty array if the key is not found.
- *
- * @param {string} yaml
- * @param {string} key
- * @returns {string[]}
- */
-function extractList(yaml, key) {
-  // Try inline list first: key: [a, b, c]
-  const inlinePattern = new RegExp(`^${key}:\\s*\\[([^\\]]+)\\]`, 'm');
-  const inlineMatch = yaml.match(inlinePattern);
-  if (inlineMatch) {
-    return inlineMatch[1]
-      .split(',')
-      .map((s) => s.trim().replace(/^["']|["']$/g, ''))
-      .filter(Boolean);
+function loadRecentDriftWarnings() {
+  if (!existsSync(SPOOL_DIR) || !existsSync(SPOOL_FILE)) {
+    return [];
   }
 
-  // Try block list: key:\n  - item\n  - item
-  const blockPattern = new RegExp(`^${key}:\\s*\\n((?:[ \\t]+-[^\\n]*\\n?)*)`, 'm');
-  const blockMatch = yaml.match(blockPattern);
-  if (blockMatch) {
-    return blockMatch[1]
-      .split('\n')
-      .map((line) => line.replace(/^\s*-\s*/, '').trim().replace(/^["']|["']$/g, ''))
-      .filter(Boolean);
-  }
+  const lines = readFileSync(SPOOL_FILE, 'utf8')
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean);
 
-  return [];
-}
+  const warnings = [];
+  for (let index = lines.length - 1; index >= 0 && warnings.length < 5; index -= 1) {
+    try {
+      const event = JSON.parse(lines[index]);
+      if (event?.event_type !== 'kdoc.doc_drift') continue;
 
-/**
- * Extract enabled area keys from a nested YAML map:
- * areas:
- *   adr:
- *     enabled: true
- *
- * Falls back to list parsing for legacy list-based configs.
- *
- * @param {string} yaml
- * @returns {string[]}
- */
-function extractEnabledAreas(yaml) {
-  const lines = yaml.split('\n');
-  const startIndex = lines.findIndex((line) => /^areas:\s*$/.test(line));
-  if (startIndex === -1) {
-    return extractList(yaml, 'areas');
-  }
-
-  const enabledAreas = [];
-
-  for (let i = startIndex + 1; i < lines.length; i += 1) {
-    const line = lines[i];
-
-    if (/^\S/.test(line)) {
-      break;
-    }
-
-    const areaMatch = line.match(/^  ([^:\s][^:]*):\s*$/);
-    if (!areaMatch) {
-      continue;
-    }
-
-    const areaName = areaMatch[1].trim();
-    let enabled = false;
-
-    for (let j = i + 1; j < lines.length; j += 1) {
-      const childLine = lines[j];
-
-      if (/^\S/.test(childLine) || /^  [^:\s][^:]*:\s*$/.test(childLine)) {
-        break;
-      }
-
-      const enabledMatch = childLine.match(/^\s+enabled:\s*(true|false)\s*$/);
-      if (enabledMatch) {
-        enabled = enabledMatch[1] === 'true';
-        break;
-      }
-    }
-
-    if (enabled) {
-      enabledAreas.push(areaName);
+      const path = typeof event?.event_data?.path === 'string' ? event.event_data.path : 'Knowledge docs';
+      const detectedAt = event.created_at ?? event.timestamp ?? '';
+      warnings.push(`${path} may be outdated (detected ${formatRelativeAge(detectedAt)})`);
+    } catch {
+      // Ignore malformed spool lines
     }
   }
 
-  return enabledAreas.length > 0 ? enabledAreas : extractList(yaml, 'areas');
+  return warnings.reverse();
 }
 
 function main() {
@@ -135,16 +72,25 @@ function main() {
   const configPath = join(projectRoot, '.kdoc.yaml');
 
   if (!existsSync(configPath)) {
-    // Project does not use kdoc — exit silently.
     process.exit(0);
   }
 
-  const yaml = readFileSync(configPath, 'utf8');
+  const config = parse(readFileSync(configPath, 'utf8')) ?? {};
 
-  const projectName = extractScalar(yaml, 'name') ?? basename(projectRoot) ?? 'this project';
-  const areas = extractEnabledAreas(yaml);
-  const packs = extractList(yaml, 'packs');
-  const tools = extractList(yaml, 'tools');
+  const projectName = config.name ?? basename(projectRoot) ?? 'this project';
+
+  // Extract enabled areas — supports map ({ adr: { enabled: true } }) or legacy list
+  let areas = [];
+  if (config.areas && typeof config.areas === 'object' && !Array.isArray(config.areas)) {
+    areas = Object.entries(config.areas)
+      .filter(([, v]) => v?.enabled === true)
+      .map(([k]) => k);
+  } else if (Array.isArray(config.areas)) {
+    areas = config.areas.map(String);
+  }
+
+  const packs = Array.isArray(config.packs) ? config.packs.map(String) : [];
+  const tools = Array.isArray(config.tools) ? config.tools.map(String) : [];
 
   const lines = [];
 
@@ -156,13 +102,20 @@ function main() {
   if (areas.length > 0) {
     lines.push(`**Active Knowledge areas:** ${areas.join(', ')}`);
   }
-
   if (packs.length > 0) {
     lines.push(`**Technology packs:** ${packs.join(', ')}`);
   }
-
   if (tools.length > 0) {
     lines.push(`**AI tool integrations:** ${tools.join(', ')}`);
+  }
+
+  const driftWarnings = loadRecentDriftWarnings();
+  if (driftWarnings.length > 0) {
+    lines.push('');
+    lines.push('**Recent drift warnings:**');
+    for (const warning of driftWarnings) {
+      lines.push(`- ${warning}`);
+    }
   }
 
   lines.push('');
@@ -189,6 +142,5 @@ function main() {
 try {
   main();
 } catch {
-  // Suppress all errors — hook failure must not disrupt session start.
   process.exit(0);
 }

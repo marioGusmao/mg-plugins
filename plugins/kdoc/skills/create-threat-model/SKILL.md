@@ -1,117 +1,43 @@
 ---
 name: kdoc:create-threat-model
-description: Create a STRIDE threat model document for a module or feature. Use when the user asks for a threat model, security analysis, or "threat model for <X>".
+description: Create a STRIDE threat model by reading the threat-model template and schema, then writing the result under Knowledge/ThreatModels. Use when the user asks for a threat model or says threat model for a module or feature.
 metadata:
-  filePattern: "Knowledge/runbooks/threat-models/**"
-  bashPattern: "kdoc create threat-model"
+  filePattern: "Knowledge/ThreatModels/**"
+  bashPattern: "kdoc create threat-model|threat model for"
 ---
 
-## Prerequisites
+# kdoc:create-threat-model
 
-- **Node.js** >= 20
-- **kdoc CLI**: `npx kdoc --version` must succeed. Install via `pnpm install` in the `cli/` directory if needed.
-- **Knowledge directory**: A `Knowledge/` directory should exist at the project root. Run `npx kdoc init` if missing.
-
-# kdoc:create-threat-model — Create Threat Model
-
-Use this skill when the user asks to threat model a feature, create a security analysis, or document attack vectors.
-
-## When to Use
-
-- "threat model for auth" / "security analysis for checkout" / "create threat model for <X>"
-- "document attack vectors for <module>"
-- Before implementing security-critical features
-
-## Output Path
-
-`Knowledge/runbooks/threat-models/{module-name}.md`
+Use this skill to create threat models with file tools only.
 
 ## Workflow
 
-1. Identify the module or feature to threat model (from context or ask).
-2. Ask for the security tier: critical (auth, payments, PII) | high (user data, admin access) | standard.
-3. Fill the STRIDE threat model template:
-
-```text
----
-area: {scope}
-module: {module-name}
-tier: critical | high | standard
-date: {YYYY-MM-DD}
----
-
-# Threat Model: {Module Title}
-
-## Scope
-
-{What is being analyzed — components, data flows, trust boundaries}
-
-## Assets
-
-{What needs to be protected — data, sessions, secrets}
-
-## Trust Boundaries
-
-{Where trust transitions occur — auth boundaries, API perimeters}
-
-## STRIDE Analysis
-
-### Spoofing
-
-| Threat | Likelihood | Impact | Mitigation |
-|--------|-----------|--------|------------|
-| | | | |
-
-### Tampering
-
-| Threat | Likelihood | Impact | Mitigation |
-|--------|-----------|--------|------------|
-| | | | |
-
-### Repudiation
-
-| Threat | Likelihood | Impact | Mitigation |
-|--------|-----------|--------|------------|
-| | | | |
-
-### Information Disclosure
-
-| Threat | Likelihood | Impact | Mitigation |
-|--------|-----------|--------|------------|
-| | | | |
-
-### Denial of Service
-
-| Threat | Likelihood | Impact | Mitigation |
-|--------|-----------|--------|------------|
-| | | | |
-
-### Elevation of Privilege
-
-| Threat | Likelihood | Impact | Mitigation |
-|--------|-----------|--------|------------|
-| | | | |
-
-## Open Risks
-
-{Accepted risks with rationale}
-
-## Related
-
-- [[ADR-XXXX]] (relevant security decisions)
-```
-
-4. Write the file.
-
-## Tier-Based Depth
-
-| Tier | STRIDE Rows | Reviewer Required |
-|------|-------------|------------------|
-| `critical` | 3+ per category | Human security review |
-| `high` | 2+ per category | Peer review |
-| `standard` | 1+ per category | Self-review |
+1. Read `core/templates/threat-model.md`.
+2. Read `core/schema/frontmatter-schemas.json` and use the `threat-model` definition as the validation contract.
+3. Determine the module or feature name from context.
+4. Write the file to `Knowledge/ThreatModels/{module-name}.md`.
+5. Fill the template with the STRIDE sections instead of inventing a new structure.
+6. Post-write validation:
+   - Read the created file.
+   - Verify all required `threat-model` frontmatter fields.
+   - Verify the file lives under `Knowledge/ThreatModels/`.
+7. If MCP is available, optionally run `kdoc_validate`. The skill must still work without MCP.
 
 ## Related Skills
 
-- `kdoc:governance-check` — validates threat-models area
-- `kdoc:create-guide` — for operational security guides (not attack analysis)
+- `kdoc:governance-check`
+- `kdoc:create-guide`
+
+## Post-Create
+
+After creating the threat model:
+
+1. Check whether `~/.ai-sessions/spool/` exists.
+2. If it exists, use Bash to append a `kdoc.artifact_created` event to `~/.ai-sessions/spool/events.jsonl`.
+3. Use the created threat model path in `event_data.path` and `threat-model` in `event_data.type`.
+
+Example:
+
+```bash
+echo '{"event_type":"kdoc.artifact_created","event_data":{"type":"threat-model","path":"Knowledge/ThreatModels/auth.md"},"source":"skill:kdoc","created_at":"2026-03-24T12:00:00.000Z"}' >> ~/.ai-sessions/spool/events.jsonl
+```

@@ -1,3 +1,9 @@
+---
+version: "1.0.0"
+date: "2026-03-24"
+summary: "Defines naming, status, and structure rules for Architecture Decision Records."
+---
+
 # ADR Conventions
 
 Architecture Decision Records (ADRs) capture structural decisions and preserve their context over time.

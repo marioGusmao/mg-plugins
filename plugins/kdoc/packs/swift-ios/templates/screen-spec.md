@@ -6,7 +6,7 @@ status: draft
 date: YYYY-MM-DD
 owner: ''
 tags: []
-summary: ''
+summary: "{{SCREEN_NAME}} — screen specification."
 ---
 
 # Screen Spec: {{SCREEN_NAME}}

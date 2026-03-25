@@ -1,3 +1,7 @@
+---
+summary: ""
+---
+
 # ADR — Architecture Decision Records
 
 Use ADRs to capture structural decisions and preserve decision context over time.

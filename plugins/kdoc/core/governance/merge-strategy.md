@@ -1,3 +1,9 @@
+---
+version: "1.0.0"
+date: "2026-03-24"
+summary: "Describes how kdoc-managed blocks are merged into existing project files."
+---
+
 # Merge Strategy
 
 kdoc uses named marker pairs to manage sections it injects into existing project files (e.g. `CLAUDE.md`, `AGENTS.md`, `.gitignore`). This document describes how the merge algorithm works.

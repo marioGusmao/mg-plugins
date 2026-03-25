@@ -1,3 +1,9 @@
+---
+version: "1.0.0"
+date: "2026-03-24"
+summary: "Defines the gap-tracking tags used to surface TLDR completeness issues."
+---
+
 # Gap-Tracking Tags
 
 Gap-tracking tags are frontmatter `tags` values that flag documentation completeness gaps in TLDR feature files. They enable automated readiness reporting via `INDEX.md`.

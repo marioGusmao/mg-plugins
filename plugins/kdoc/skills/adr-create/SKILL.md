@@ -1,123 +1,50 @@
 ---
 name: kdoc:adr-create
-description: Create a new Architecture Decision Record (ADR) with sequential numbering. Use when the user says "create ADR", "document this decision", or "new architecture decision".
+description: Create a new Architecture Decision Record by reading the ADR template, determining the next ADR number from existing files, and writing a schema-compliant ADR. Use when the user asks to create ADRs, document architecture decisions, or record a technical decision.
 metadata:
-  filePattern: "Knowledge/ADR/ADR-*.md"
-  bashPattern: "kdoc create adr"
+  filePattern: "Knowledge/ADR/**"
+  bashPattern: "kdoc create adr|create ADR|document architecture decision"
 ---
 
-## Prerequisites
+# kdoc:adr-create
 
-- **Node.js** >= 20
-- **kdoc CLI**: `npx kdoc --version` must succeed. Install via `pnpm install` in the `cli/` directory if needed.
-- **Knowledge directory**: A `Knowledge/` directory should exist at the project root. Run `npx kdoc init` if missing.
-
-# kdoc:adr-create — Create Architecture Decision Record
-
-Use this skill when the user asks to create a new ADR or document an architectural decision.
-
-## When to Use
-
-- "create ADR" / "new decision" / "document this architecture decision"
-- "record the decision about <X>"
-- After making a significant technical or architectural choice
-
-## Evidence-First: Repo Scan
-
-Before generating any template, scan the repository for evidence that informs the content:
-
-1. **Recent changes**: `git log --oneline -20` and `git diff --stat HEAD~5 HEAD` to understand what was recently modified
-2. **Existing patterns**: Read 1-2 existing documents of the same type (ADR/TLDR/guide) to match style, depth, and structure
-3. **Module context**: Check package.json, README.md, and directory structure for module descriptions and boundaries
-4. **Cross-references**: Search for related ADRs, TLDRs, or guides that should be linked
-
-Use this evidence to pre-populate template fields rather than starting from blank placeholders.
+Use this skill to create a new ADR using only `Read`, `Write`, `Glob`, `Edit`, and `Grep`.
 
 ## Workflow
 
-1. Determine the next sequential ADR number:
-   - Glob `Knowledge/ADR/ADR-*.md`
-   - Extract the highest NNNN from filenames (format: `ADR-{NNNN}-*.md`)
-   - Next = highest + 1, zero-padded to 4 digits (e.g., `0012`)
-   - If no ADRs exist yet: start at `0001`
+1. Read `core/templates/adr.md`.
+2. Read `core/schema/frontmatter-schemas.json` and use the `adr` definition as the contract for required fields, allowed statuses, and ID format.
+3. Glob `Knowledge/ADR/ADR-*.md` to determine the next four-digit ADR number.
+4. Read one or two nearby ADRs only if needed to match local style and cross-reference conventions.
+5. Write the new file to `Knowledge/ADR/ADR-{NNNN}-{slug}.md`.
+6. Post-write validation:
+   - Read the file you created.
+   - Verify all required `adr` frontmatter fields from `core/schema/frontmatter-schemas.json`.
+   - Verify the frontmatter `id` matches the filename number.
+   - Verify the status is allowed by the schema.
+7. If MCP is available, optionally run `kdoc_validate` on the new file as an extra check. The skill must still work without MCP.
 
-2. Ask the user (or infer from context):
-   - **Title**: Short descriptive phrase (e.g., "Marker-based file merging")
-   - **Status**: `proposed` (default) | `accepted` | `supersedes: ADR-XXXX`
-   - **Context**: Why does this decision need to be made?
-   - **Decision**: What was decided?
-   - **Rationale**: Why this option over alternatives?
-   - **Consequences**: Trade-offs, risks, follow-up actions
+## Output Rules
 
-3. Alternatively, use the CLI: `npx kdoc create adr "<title>" [--status proposed]`
-   This handles sequential numbering automatically.
-
-4. The output file path: `Knowledge/ADR/ADR-{NNNN}-{kebab-title}.md`
-   - Convert title to kebab-case for the filename slug.
-
-5. Fill the ADR template (from `core/governance/adr-conventions.md`):
-
-```text
----
-id: ADR-{NNNN}
-title: "{Title}"
-date: {YYYY-MM-DD}
-status: proposed
----
-
-# ADR-{NNNN}: {Title}
-
-## Context
-
-{Why this decision is needed}
-
-## Decision
-
-{What was decided}
-
-## Rationale
-
-{Why this option over alternatives}
-
-## Consequences
-
-{Trade-offs, risks, follow-up actions}
-```
-
-6. After creation, run `kdoc:adr-validate` to confirm numbering integrity.
-
-## Status Lifecycle
-
-```
-proposed → accepted → superseded (by ADR-XXXX)
-         → rejected
-```
-
-- An ADR in `proposed` state is visible but not yet binding.
-- `accepted` means the decision is in effect.
-- `superseded` means a newer ADR replaces it — add `supersedes: ADR-XXXX` to the new ADR's frontmatter.
-
-## Naming Rules
-
-- File: `ADR-{NNNN}-{kebab-case-title}.md` (no uppercase in slug)
-- Title in frontmatter: Title Case
-- Gaps in numbering are allowed (concurrent creation may produce gaps)
+- Use the next available zero-padded ADR number.
+- Keep the filename slug kebab-case.
+- Preserve existing ADR supersession conventions when the user is replacing an older ADR.
 
 ## Related Skills
 
-- `kdoc:adr-validate` — validate numbering and cross-references after creation
-- `kdoc:governance-check` — full health check including ADR governance
+- `kdoc:adr-validate`
+- `kdoc:governance-check`
 
-## Autonomy Mode
+## Post-Create
 
-When invoked by an automated agent (workshop orchestrator, CI pipeline, or batch process) rather than interactive user input:
+After creating the ADR:
 
-1. **Deterministic inference**: Infer all required parameters from available context (git history, file structure, existing Knowledge/ content) instead of prompting the user. If a parameter cannot be inferred with reasonable confidence, use sensible defaults and note the assumption.
+1. Check whether `~/.ai-sessions/spool/` exists.
+2. If it exists, use Bash to append a `kdoc.artifact_created` event to `~/.ai-sessions/spool/events.jsonl`.
+3. Use the created ADR path in `event_data.path` and `adr` in `event_data.type`.
 
-2. **Repo-scan first**: Before generating any content, scan the repository for relevant context:
-   - `git log --oneline -20` for recent changes
-   - Existing Knowledge/ structure and naming patterns
-   - Package.json / project configuration for module names
-   - Existing ADRs/TLDRs for numbering and style consistency
+Example:
 
-3. **Structured output**: Always produce valid frontmatter with all required fields populated. Emit the file path as the first line of output so callers can locate the artifact.
+```bash
+echo '{"event_type":"kdoc.artifact_created","event_data":{"type":"adr","path":"Knowledge/ADR/ADR-0001-example.md"},"source":"skill:kdoc","created_at":"2026-03-24T12:00:00.000Z"}' >> ~/.ai-sessions/spool/events.jsonl
+```

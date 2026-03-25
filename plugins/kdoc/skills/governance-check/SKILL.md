@@ -1,70 +1,31 @@
 ---
 name: kdoc:governance-check
-description: Run all kdoc validation scripts and report Knowledge health. Use when the user asks for a Knowledge audit, health check, or before pushing changes that affect Knowledge files.
+description: Check Knowledge health by scanning documentation files, validating frontmatter contracts, and reporting structural or reference issues. Use when the user asks to check knowledge, run governance check, or run kdoc doctor.
 metadata:
   filePattern: "Knowledge/**/*.md"
-  bashPattern: "kdoc doctor|kdoc:check|kdoc:governance"
+  bashPattern: "kdoc doctor|check knowledge|run governance check"
 ---
 
-## Prerequisites
+# kdoc:governance-check
 
-- **Node.js** >= 20
-- **kdoc CLI**: `npx kdoc --version` must succeed. Install via `pnpm install` in the `cli/` directory if needed.
-- **Knowledge directory**: A `Knowledge/` directory should exist at the project root. Run `npx kdoc init` if missing.
-
-# kdoc:governance-check — Knowledge Health Check
-
-Use this skill when the user asks to check Knowledge health, run governance validation, or diagnose Knowledge issues.
-
-## When to Use
-
-- "check knowledge" / "kdoc doctor" / "run governance check"
-- Before pushing changes that modify Knowledge files
-- After adding a new area or pack
-- When wikilink or ADR errors are suspected
+Use this skill to audit Knowledge content with `Read`, `Glob`, and `Grep`.
 
 ## Workflow
 
-1. Run the primary health check: `npx kdoc doctor`
-   - Reports: config validity, structure completeness, script freshness, integration markers, governance.
-   - Exit codes: 0 = all pass, 1 = failures, 2 = config error.
-
-2. If the project has Python governance scripts installed, run them directly:
-   - `python3 scripts/kdoc/check_sync.py` — Knowledge sync check
-   - `python3 scripts/kdoc/check_wikilinks.py` — wikilink integrity
-   - `python3 scripts/kdoc/check_adr_governance.py` — ADR governance
-   Note: There are no `kdoc:check` or `kdoc:governance` npm scripts. Use `npx kdoc doctor` or run the Python scripts directly.
-
-3. If `governance_health.py` is available, run: `python3 scripts/kdoc/governance_health.py`
-   - This produces a consolidated governance report.
-
-4. Interpret and surface:
-   - PASS items: summarize count only.
-   - WARN items: list each with suggested fix.
-   - FAIL items: list each with required action and the relevant `fix` command from JSON output.
-
-5. If `--json` output is available, parse it for structured reporting; otherwise parse stdout.
-
-## Interpreting Results
-
-| Status | Action |
-|--------|--------|
-| `pass` | No action needed |
-| `warn` | Inform user; suggest fix but do not block |
-| `fail` | Report as blocking; provide `fix` command |
-
-## Common Failures and Fixes
-
-| Failure | Fix |
-|---------|-----|
-| ADR numbering gap | Rename files to fill gap or accept gap (gaps are allowed) |
-| Broken wikilink | Find and fix the `[[TARGET]]` reference |
-| Missing TLDR for module | `kdoc:tldr-create` for that module |
-| INDEX.md stale | `pnpm kdoc:index` or `npx kdoc doctor` will suggest |
-| CLAUDE.md missing kdoc block | `npx kdoc add-tool claude-code` |
+1. Read `.kdoc.yaml` if present to determine active Knowledge areas and scope layout.
+2. Read `core/schema/frontmatter-schemas.json` and `core/schema/knowledge-structure.json`.
+3. Glob enabled Knowledge files and directories.
+4. Validate:
+   - required directories and seed files
+   - required frontmatter fields by document type
+   - invalid status values
+   - broken or suspicious wikilinks
+   - obvious missing index or roadmap artifacts
+5. Report PASS/WARN/FAIL findings with exact file paths.
+6. If MCP is available, optionally call `kdoc_health` to confirm or enrich the manual audit. The skill must still work without MCP.
 
 ## Related Skills
 
-- `kdoc:scaffold` — if structure is missing, scaffold it
-- `kdoc:adr-validate` — focused ADR governance check
-- `kdoc:tldr-update-status` — if TLDRs have stale status
+- `kdoc:adr-validate`
+- `kdoc:scaffold`
+- `kdoc:tldr-update-status`

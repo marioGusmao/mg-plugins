@@ -1,63 +1,30 @@
 ---
 name: kdoc:tldr-update-status
-description: Update a TLDR's status frontmatter and remove resolved gap tracking tags. Use when the user says "mark TLDR as done", "update status", or "resolve open question".
+description: Update TLDR status and gap tags by editing the TLDR file directly and validating the result against the feature schema. Use when the user asks to mark TLDR as done, update TLDR status, resolve open question, or remove gap tag.
 metadata:
-  filePattern: "Knowledge/TLDR/**/*.md"
-  bashPattern: ""
+  filePattern: "Knowledge/TLDR/**"
+  bashPattern: "mark TLDR as done|update TLDR status|resolve open question|remove gap tag"
 ---
 
-## Prerequisites
+# kdoc:tldr-update-status
 
-- **Node.js** >= 20
-- **kdoc CLI**: `npx kdoc --version` must succeed. Install via `pnpm install` in the `cli/` directory if needed.
-- **Knowledge directory**: A `Knowledge/` directory should exist at the project root. Run `npx kdoc init` if missing.
-
-# kdoc:tldr-update-status — Update TLDR Status
-
-Use this skill when the user asks to update a TLDR's status, mark it complete, or resolve gap tracking tags.
-
-## When to Use
-
-- "mark TLDR as done" / "update TLDR status" / "TLDR is ready"
-- "resolve open question in <TLDR>" / "fill in acceptance criteria"
-- "remove gap tag from <TLDR>"
+Use this skill to update TLDR status directly in files.
 
 ## Workflow
 
-1. Identify the target TLDR file (from context or ask the user for path/module name).
-
-2. Read the current frontmatter and body.
-
-3. Update the `status` field:
-
-   | New Status | When to Use |
-   |------------|-------------|
-   | `draft` | Initial state, requirements incomplete |
-   | `ready` | Requirements complete, implementation not started |
-   | `in-progress` | Implementation underway |
-   | `done` | Implementation complete and verified |
-   | `deprecated` | Module removed or replaced |
-
-4. Remove gap tracking tags from frontmatter when resolved:
-
-   | Tag | Remove When |
-   |-----|-------------|
-   | `has-open-questions` | All open questions are struck through or removed |
-   | `missing-test-scenarios` | Test Scenarios table has at least one row |
-   | `missing-acceptance-criteria` | Acceptance Criteria section has content |
-   | `blocked-by-decision` | The blocking ADR is accepted/resolved |
-
-5. If resolving an open question: strike it through in the body with `~~question text~~`. If no active questions remain, remove the `has-open-questions` tag.
-
-6. Write the updated file.
-
-## Gap Tag Rules
-
-- Tags live in frontmatter as a YAML list under `gaps:` or as inline tags (project convention may vary).
-- When a tag is removed, do NOT remove the section itself — only remove the tag from frontmatter.
-- A TLDR with all gaps resolved and `status: done` is considered complete.
+1. Identify the target TLDR file.
+2. Read `core/schema/frontmatter-schemas.json` and use the `feature` definition as the contract.
+3. Read the TLDR file.
+4. Edit the `status` field and any gap-tracking tags that changed.
+5. If open questions are resolved, update the body content accordingly.
+6. Post-write validation:
+   - Read the updated file.
+   - Verify required `feature` frontmatter fields still exist.
+   - Verify the new status is allowed by schema.
+   - Verify removed tags correspond to actual resolved content changes.
+7. If MCP is available, optionally run `kdoc_validate`. The skill must still work without MCP.
 
 ## Related Skills
 
-- `kdoc:tldr-create` — create a new TLDR
-- `kdoc:governance-check` — validates gap tag consistency across all TLDRs
+- `kdoc:tldr-create`
+- `kdoc:governance-check`

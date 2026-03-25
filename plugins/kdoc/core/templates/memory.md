@@ -1,3 +1,7 @@
+---
+summary: ""
+---
+
 # {{PROJECT_NAME}} Shared Agent Memory
 
 ## Purpose

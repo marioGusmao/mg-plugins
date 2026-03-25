@@ -13,19 +13,11 @@ summary: Implementation roadmap — entry point with progress dashboard and link
 # Roadmap
 
 > **Living document** — updated as phases are completed or reprioritized.
-> Per-phase details live in `Roadmap/phases/phase-N.md` files. Sub-phase cards live in `Roadmap/phases/phase-N/N.X.md`.
+> Per-phase details live in `Roadmap/phases/phase-N.md` files. Sub-phase cards live in `Roadmap/phases/phase-N/N.X.md`. The generated progress view lives in `Roadmap/generated/dashboard.md`.
 
-## Progress Dashboard
+## Generated Dashboard
 
-<!-- ROADMAP_AUTOGEN:START -->
-
-| Phase | Name | Status | Progress | Next Up | Details |
-| ----- | ---- | ------ | -------- | ------- | ------- |
-| 1     | <!-- Phase name --> | pending | 0/1 | 1.1 | [[Roadmap/phases/phase-1]] |
-
-**Overall:** 0/1 done, 0 in progress, 1 remaining.
-
-<!-- ROADMAP_AUTOGEN:END -->
+See [[Roadmap/generated/dashboard|Roadmap Dashboard]] for the current generated progress view.
 
 ## Cross-Phase Dependency Graph
 

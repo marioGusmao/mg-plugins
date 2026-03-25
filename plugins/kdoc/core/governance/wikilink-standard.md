@@ -1,3 +1,9 @@
+---
+version: "1.0.0"
+date: "2026-03-24"
+summary: "Defines wikilink syntax, resolution rules, and forbidden patterns for Knowledge files."
+---
+
 # Wikilink Standard
 
 Wikilinks provide portable internal cross-references in Knowledge files. This document covers syntax, resolution rules, and forbidden patterns.
