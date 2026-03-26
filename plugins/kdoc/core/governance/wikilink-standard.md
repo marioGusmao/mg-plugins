@@ -1,7 +1,7 @@
 ---
-version: "1.0.0"
-date: "2026-03-24"
-summary: "Defines wikilink syntax, resolution rules, and forbidden patterns for Knowledge files."
+version: "1.1.0"
+date: "2026-03-26"
+summary: "Defines wikilink syntax, canonical formats, resolution rules, and forbidden patterns for Knowledge files."
 ---
 
 # Wikilink Standard
@@ -19,11 +19,48 @@ Wikilinks provide portable internal cross-references in Knowledge files. This do
 
 The `.md` extension is optional — the validator normalizes both forms.
 
+## Canonical Formats
+
+Prefer the shortest portable form that still identifies the target unambiguously:
+
+1. Knowledge-relative links for repository-root Knowledge content:
+
+   ```markdown
+   [[ADR/ADR-0001-decision]]
+   [[TLDR/Shop/cart]]
+   ```
+
+2. Root-relative links when you need to point at an explicit repo path:
+
+   ```markdown
+   [[Knowledge/ADR/ADR-0001-decision]]
+   [[packages/codegraph/Knowledge/TLDR/indexer-pipeline]]
+   ```
+
+3. Package-scoped links for package Knowledge content:
+
+   ```markdown
+   [[packages/codegraph/TLDR/indexer-pipeline]]
+   [[packages/router-plugin/ADR/ADR-0003-contract]]
+   ```
+
+Within `packages/<pkg>/Knowledge/**`, local package links may also omit the package prefix:
+
+```markdown
+[[TLDR/indexer-pipeline]]
+[[ADR/ADR-0003-contract]]
+```
+
+Use the explicit `packages/<pkg>/...` form when linking across packages.
+
 ## Resolution Rules
 
-1. If the first path segment matches a known Knowledge subdirectory (e.g. `TLDR`, `ADR`, `Roadmap`), the link resolves relative to the Knowledge root.
-2. If no segment match is found, the validator tries the Knowledge root directly.
-3. Final fallback: resolve relative to the current file's directory.
+1. Resolve relative to the repository Knowledge root (`<repo>/Knowledge/...`).
+2. Resolve relative to the repository root (`<repo>/...`).
+3. Resolve relative to a package Knowledge root:
+   - for explicit `packages/<pkg>/...` targets, try `<repo>/packages/<pkg>/Knowledge/...`
+   - for files already inside `packages/<pkg>/Knowledge/**`, try that package's Knowledge root
+4. Final fallback: resolve relative to the current file's directory.
 
 ## Placeholder / Example Links
 

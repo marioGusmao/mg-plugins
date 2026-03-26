@@ -20,6 +20,7 @@ summary: ""
 
 > Use this file to start fast. It should answer where the important knowledge lives, what is active now, and which documents to read next.
 
+<!-- kdoc:generated:start -->
 ## Knowledge Map
 
 | Area | Files | Key Documents |
@@ -48,6 +49,7 @@ summary: ""
 | Current Phase | Next Unblocked | Blocking Decision |
 | ------------- | -------------- | ----------------- |
 | <!-- [[Roadmap/phases/phase-N]] --> | <!-- [[Roadmap/phases/phase-N/N.X]] --> | <!-- [[ADR/ADR-NNNN]] --> |
+<!-- kdoc:generated:end -->
 
 ## Recommended Agent Startup Flow
 

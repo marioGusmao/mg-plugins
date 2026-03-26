@@ -10,7 +10,7 @@ tags: []
 aliases: ["{{TITLE}}"]
 intent: ""
 module_path: ""
-security_tier: standard
+security-tier: standard
 summary: ""
 ---
 

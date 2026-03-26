@@ -8,7 +8,7 @@ scope: {{SCOPE}}
 tags: []
 aliases: ["ADR-{{NUMBER}}"]
 intent: ""
-superseded_by: ""
+superseded-by: ""
 decision_makers: []
 summary: ""
 ---

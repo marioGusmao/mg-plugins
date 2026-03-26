@@ -49,6 +49,65 @@
     "index": {
       "required": ["type", "area", "id", "status", "summary"],
       "optional": ["linear", "tags"]
+    },
+    "context-pack": {
+      "required": ["type", "status", "summary"],
+      "optional": ["title", "date", "scope", "tags", "aliases", "intent"],
+      "status_values": ["draft", "generated"]
+    },
+    "guide": {
+      "required": ["type", "status", "summary"],
+      "optional": ["title", "area", "id", "date", "scope", "tags", "aliases", "intent", "owner"],
+      "status_values": ["draft", "active", "deprecated"]
+    },
+    "flow-spec": {
+      "required": ["type", "status", "summary"],
+      "optional": ["title", "id", "date", "scope", "tags", "aliases", "security-tier"],
+      "status_values": ["draft", "in_progress", "ready", "done", "deprecated"]
+    },
+    "test-map": {
+      "required": ["type", "status", "summary"],
+      "optional": ["title", "id", "date", "scope", "tags", "aliases", "intent"],
+      "status_values": ["draft", "active", "deprecated"]
+    },
+    "category-index": {
+      "required": ["type", "status", "summary"],
+      "optional": ["title", "area", "date", "scope", "category", "tags", "aliases", "intent"],
+      "status_values": ["draft", "active"]
+    },
+    "memory": {
+      "required": ["type", "summary"],
+      "optional": ["tags"]
+    },
+    "page-spec": {
+      "required": ["type", "status", "summary"],
+      "optional": ["title", "app", "id", "date", "tags", "security-tier"],
+      "status_values": ["draft", "in_progress", "ready", "done", "deprecated"]
+    },
+    "screen-spec": {
+      "required": ["type", "status", "summary"],
+      "optional": ["title", "pack", "screen", "id", "date", "owner", "tags", "security-tier"],
+      "status_values": ["draft", "in_progress", "ready", "done", "deprecated"]
+    },
+    "route-contract": {
+      "required": ["type", "status", "summary"],
+      "optional": ["title", "module", "id", "date", "tags", "security-tier"],
+      "status_values": ["draft", "active", "deprecated"]
+    },
+    "api-contract": {
+      "required": ["type", "status", "summary"],
+      "optional": ["title", "pack", "endpoint", "id", "date", "owner", "tags", "security-tier"],
+      "status_values": ["draft", "active", "deprecated"]
+    },
+    "recipe": {
+      "required": ["type", "status", "summary"],
+      "optional": ["title", "category", "id", "date", "tags"],
+      "status_values": ["draft", "active", "deprecated"]
+    },
+    "design-standard": {
+      "required": ["type", "status", "summary"],
+      "optional": ["title", "id", "tags"],
+      "status_values": ["draft", "active", "deprecated"]
     }
   }
 }

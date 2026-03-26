@@ -15,9 +15,14 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { basename, join, dirname } from 'node:path';
 import { homedir } from 'node:os';
-import { parse } from 'yaml';
+import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(join(__dirname, '..', 'cli', 'package.json'));
+const { parse } = require('yaml');
 
 const SPOOL_DIR = join(homedir(), '.ai-sessions', 'spool');
 const SPOOL_FILE = join(SPOOL_DIR, 'events.jsonl');

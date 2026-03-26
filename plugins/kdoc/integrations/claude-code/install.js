@@ -180,6 +180,7 @@ async function main() {
       'project-root': { type: 'string' },
       'kdoc-root': { type: 'string' },
       'dry-run': { type: 'boolean', default: false },
+      manifest: { type: 'boolean', default: false },
       yes: { type: 'boolean', default: false },
     },
     strict: true,
@@ -188,6 +189,7 @@ async function main() {
   const projectRoot = values['project-root'];
   const kdocRoot = values['kdoc-root'] ?? process.cwd();
   const dryRun = values['dry-run'] ?? false;
+  const manifestMode = values.manifest ?? false;
 
   if (!projectRoot) {
     console.error('Error: --project-root is required');
@@ -257,37 +259,66 @@ async function main() {
 
   const claudeMdBlock = generateClaudeMdBlock(skillNames);
   const mergedClaudeMd = mergeMarkerBlock(existingClaudeMd, claudeMdBlock);
+  const manifest = {
+    created: [],
+    merged: [],
+    skipped: [],
+  };
 
   // --- Report plan ---
-  console.log('\nkdoc Claude Code Integration Install');
-  console.log('=====================================');
-  console.log(`Project root: ${projectRoot}`);
-  console.log(`kdoc root:    ${kdocRoot}`);
-  if (dryRun) console.log('Mode: DRY RUN (no files will be written)\n');
+  if (!manifestMode) {
+    console.log('\nkdoc Claude Code Integration Install');
+    console.log('=====================================');
+    console.log(`Project root: ${projectRoot}`);
+    console.log(`kdoc root:    ${kdocRoot}`);
+    if (dryRun) console.log('Mode: DRY RUN (no files will be written)\n');
 
-  console.log(`\nSkills to install (${skillNames.length}):`);
-  for (const name of skillNames) {
-    console.log(`  .claude/skills/kdoc-${name}/SKILL.md`);
+    console.log(`\nSkills to install (${skillNames.length}):`);
+    for (const name of skillNames) {
+      console.log(`  .claude/skills/kdoc-${name}/SKILL.md`);
+    }
+
+    console.log(`\nAgents to install (${agentFiles.length}):`);
+    for (const name of agentFiles) {
+      const agentName = basename(name, '.md');
+      console.log(`  .claude/agents/kdoc-${agentName}.md`);
+    }
+
+    console.log(`\nHook scripts to install:`);
+    console.log(`  .claude/hooks/kdoc-session-start.mjs`);
+    console.log(`  .claude/hooks/kdoc-pre-push-check.mjs`);
+    console.log(`  .claude/hooks/hooks.json [merge]`);
   }
-
-  console.log(`\nAgents to install (${agentFiles.length}):`);
-  for (const name of agentFiles) {
-    const agentName = basename(name, '.md');
-    console.log(`  .claude/agents/kdoc-${agentName}.md`);
-  }
-
-  console.log(`\nHook scripts to install:`);
-  console.log(`  .claude/hooks/kdoc-session-start.mjs`);
-  console.log(`  .claude/hooks/kdoc-pre-push-check.mjs`);
-  console.log(`  .claude/hooks/hooks.json [merge]`);
 
   const claudeMdAction =
     existingClaudeMd.includes(START_MARKER) ? 'replace block' :
     existingClaudeMd.length > 0 ? 'append block' : 'create file';
-  console.log(`\nCLAUDE.md: ${claudeMdPath} [${claudeMdAction}]`);
+  if (!manifestMode) {
+    console.log(`\nCLAUDE.md: ${claudeMdPath} [${claudeMdAction}]`);
+  }
+
+  for (const name of skillNames) {
+    manifest.created.push(`.claude/skills/kdoc-${name}/SKILL.md`);
+  }
+  for (const name of agentFiles) {
+    const agentName = basename(name, '.md');
+    manifest.created.push(`.claude/agents/kdoc-${agentName}.md`);
+  }
+  manifest.created.push('.claude/hooks/kdoc-session-start.mjs');
+  manifest.created.push('.claude/hooks/kdoc-pre-push-check.mjs');
+  manifest.merged.push('.claude/hooks/hooks.json');
+  if (claudeMdAction === 'create file') {
+    manifest.created.push('CLAUDE.md');
+  } else {
+    manifest.merged.push('CLAUDE.md');
+  }
 
   if (dryRun) {
-    console.log('\nDry run complete. No files written.');
+    if (manifestMode) {
+      process.stdout.write(`${JSON.stringify(manifest)}\n`);
+    } else {
+      console.log('\nDry run complete. No files written.');
+    }
     process.exit(0);
   }
 
@@ -301,7 +332,9 @@ async function main() {
     await mkdir(targetDir, { recursive: true });
     await copyFile(sourcePath, targetPath);
   }
-  console.log(`\nCopied ${skillNames.length} skill(s) to .claude/skills/`);
+  if (!manifestMode) {
+    console.log(`\nCopied ${skillNames.length} skill(s) to .claude/skills/`);
+  }
 
   // 2. Copy agents.
   await mkdir(agentsDir, { recursive: true });
@@ -311,12 +344,16 @@ async function main() {
     const targetPath = join(agentsDir, `kdoc-${agentName}.md`);
     await copyFile(sourcePath, targetPath);
   }
-  console.log(`Copied ${agentFiles.length} agent(s) to .claude/agents/`);
+  if (!manifestMode) {
+    console.log(`Copied ${agentFiles.length} agent(s) to .claude/agents/`);
+  }
 
   // 3. Merge hooks.json.
   await mkdir(hooksDir, { recursive: true });
   await writeFile(targetHooksJsonPath, JSON.stringify(mergedHooks, null, 2) + '\n', 'utf8');
-  console.log(`Wrote merged hooks.json to .claude/hooks/hooks.json`);
+  if (!manifestMode) {
+    console.log(`Wrote merged hooks.json to .claude/hooks/hooks.json`);
+  }
 
   // 4. Copy hook scripts (with kdoc- prefix).
   const hookScripts = ['session-start.mjs', 'pre-push-check.mjs'];
@@ -325,11 +362,20 @@ async function main() {
     const targetPath = join(hooksDir, `kdoc-${script}`);
     await copyFile(sourcePath, targetPath);
   }
-  console.log(`Copied hook scripts to .claude/hooks/`);
+  if (!manifestMode) {
+    console.log(`Copied hook scripts to .claude/hooks/`);
+  }
 
   // 5. Merge CLAUDE.md.
   await writeFile(claudeMdPath, mergedClaudeMd, 'utf8');
-  console.log(`Updated CLAUDE.md (${claudeMdAction})`);
+  if (!manifestMode) {
+    console.log(`Updated CLAUDE.md (${claudeMdAction})`);
+  }
+
+  if (manifestMode) {
+    process.stdout.write(`${JSON.stringify(manifest)}\n`);
+    return;
+  }
 
   console.log('\nInstallation complete.');
   console.log('\nNext steps:');

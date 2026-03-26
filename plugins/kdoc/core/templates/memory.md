@@ -1,4 +1,5 @@
 ---
+type: memory
 summary: ""
 ---
 

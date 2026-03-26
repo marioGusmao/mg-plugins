@@ -1,5 +1,27 @@
-import { parseDocument } from 'yaml';
-import { z } from 'zod';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function loadYamlModule() {
+  try {
+    return createRequire(import.meta.url)('yaml');
+  } catch {
+    return createRequire(join(__dirname, '..', '..', 'cli', 'package.json'))('yaml');
+  }
+}
+
+function loadZodModule() {
+  try {
+    return createRequire(import.meta.url)('zod');
+  } catch {
+    return createRequire(join(__dirname, '..', '..', 'cli', 'package.json'))('zod');
+  }
+}
+
+const { parseDocument } = loadYamlModule();
+const { z } = loadZodModule();
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
 

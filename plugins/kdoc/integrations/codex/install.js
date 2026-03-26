@@ -114,6 +114,7 @@ async function main() {
       'project-root': { type: 'string' },
       'kdoc-root': { type: 'string' },
       'dry-run': { type: 'boolean', default: false },
+      manifest: { type: 'boolean', default: false },
       yes: { type: 'boolean', default: false },
     },
     strict: true,
@@ -122,6 +123,7 @@ async function main() {
   const projectRoot = values['project-root'];
   const kdocRoot = values['kdoc-root'] ?? process.cwd();
   const dryRun = values['dry-run'] ?? false;
+  const manifestMode = values.manifest ?? false;
 
   if (!projectRoot) {
     console.error('Error: --project-root is required');
@@ -153,39 +155,75 @@ async function main() {
   // Prepare auditor instructions.
   const auditorExists = await fileExists(auditorPath);
   const auditorContent = generateAuditorInstructions();
+  const manifest = {
+    created: [],
+    merged: [],
+    skipped: [],
+  };
 
   // Report plan.
-  console.log('\nkdoc Codex Integration Install');
-  console.log('================================');
-  console.log(`Project root: ${projectRoot}`);
-  console.log(`kdoc root:    ${kdocRoot}`);
-  if (dryRun) console.log('Mode: DRY RUN (no files will be written)\n');
+  if (!manifestMode) {
+    console.log('\nkdoc Codex Integration Install');
+    console.log('================================');
+    console.log(`Project root: ${projectRoot}`);
+    console.log(`kdoc root:    ${kdocRoot}`);
+    if (dryRun) console.log('Mode: DRY RUN (no files will be written)\n');
+  }
 
   const agentsMdAction =
     existingAgentsMd.includes(START_MARKER) ? 'replace block' :
     existingAgentsMd.length > 0 ? 'append block' : 'create file';
 
-  console.log(`AGENTS.md:      ${agentsMdPath} [${agentsMdAction}]`);
-  console.log(
-    `knowledge-auditor: ${auditorPath} [${auditorExists ? 'skip (exists)' : 'create'}]`
-  );
+  if (!manifestMode) {
+    console.log(`AGENTS.md:      ${agentsMdPath} [${agentsMdAction}]`);
+    console.log(
+      `knowledge-auditor: ${auditorPath} [${auditorExists ? 'skip (exists)' : 'create'}]`
+    );
+  }
+
+  if (agentsMdAction === 'create file') {
+    manifest.created.push('AGENTS.md');
+  } else {
+    manifest.merged.push('AGENTS.md');
+  }
+
+  if (auditorExists) {
+    manifest.skipped.push('.codex/agents/knowledge-auditor/instructions.md');
+  } else {
+    manifest.created.push('.codex/agents/knowledge-auditor/instructions.md');
+  }
 
   if (dryRun) {
-    console.log('\nDry run complete. No files written.');
+    if (manifestMode) {
+      process.stdout.write(`${JSON.stringify(manifest)}\n`);
+    } else {
+      console.log('\nDry run complete. No files written.');
+    }
     process.exit(0);
   }
 
   // Write AGENTS.md.
   await writeFile(agentsMdPath, mergedAgentsMd, 'utf8');
-  console.log(`\nWrote: ${agentsMdPath}`);
+  if (!manifestMode) {
+    console.log(`\nWrote: ${agentsMdPath}`);
+  }
 
   // Write knowledge-auditor instructions (idempotent — skip if exists).
   if (!auditorExists) {
     await mkdir(dirname(auditorPath), { recursive: true });
     await writeFile(auditorPath, auditorContent, 'utf8');
-    console.log(`Created: ${auditorPath}`);
+    if (!manifestMode) {
+      console.log(`Created: ${auditorPath}`);
+    }
   } else {
-    console.log(`Skipped (exists): ${auditorPath}`);
+    if (!manifestMode) {
+      console.log(`Skipped (exists): ${auditorPath}`);
+    }
+  }
+
+  if (manifestMode) {
+    process.stdout.write(`${JSON.stringify(manifest)}\n`);
+    return;
   }
 
   console.log('\nInstallation complete.');

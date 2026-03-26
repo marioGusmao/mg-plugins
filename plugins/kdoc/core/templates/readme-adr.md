@@ -70,6 +70,7 @@ All items below must be true before changing status:
 ## Traceability
 
 - **TLDR `## Related ADRs`** is the canonical source of truth for TLDR-to-ADR relationships.
+- Cross-references use wikilinks: `[[{{WIKILINK_PREFIX}}ADR/ADR-NNNN]]`
 
 ## ADR Sequence
 

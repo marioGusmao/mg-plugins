@@ -27,7 +27,7 @@ The keywords **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** in 
 ## How to use this directory
 
 - Each `.md` file describes one feature without implementation-specific code.
-- Canonical links use wikilinks with path, for example `[[TLDR/<Area>/<feature>]]`.
+- Canonical links use wikilinks with path, for example `[[{{WIKILINK_PREFIX}}TLDR/<Area>/<feature>]]`.
 - Every feature note must include all standard sections: Description, Requirements, Test Scenarios, Acceptance Criteria, Non-Goals, Dependencies, Used by, Open Questions, Related ADRs.
 - If an AI detects flaws or improvement opportunities in requirements, it must report to the user.
 - **Status definitions:**
@@ -47,4 +47,4 @@ The keywords **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** in 
 > **Live status:** Per-file status is tracked in `INDEX.md` (auto-generated). This index lists modules only.
 
 <!-- Add wikilinks to feature modules here. Example: -->
-<!-- - [[TLDR/<Area>/<feature>|Feature Name]] -->
+<!-- - [[{{WIKILINK_PREFIX}}TLDR/<Area>/<feature>|Feature Name]] -->
