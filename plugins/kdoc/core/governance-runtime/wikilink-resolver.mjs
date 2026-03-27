@@ -2,9 +2,11 @@ import { existsSync } from 'node:fs';
 import { join, dirname, relative, resolve, sep } from 'node:path';
 
 const WIKILINK_RE = /\[\[([^\]]+)\]\]/g;
-const PLACEHOLDER_RE = /\{\{.*?\}\}|<[A-Z][a-z]+>|<note>/;
+const PLACEHOLDER_RE = /\{\{.*?\}\}|<[A-Za-z][a-z]+>|<note>/;
 const FORBIDDEN_RE = /^(\/Users\/|\/home\/|[A-Z]:\\|file:\/\/)/;
 const PACKAGE_TARGET_RE = /^packages\/([^/]+)\/(.+)$/;
+const INLINE_CODE_SPAN_RE = /`[^`]*`/g;
+const FENCED_CODE_RE = /^```/;
 
 function pushMarkdownCandidates(candidates, seen, basePath) {
   for (const candidate of [basePath, `${basePath}.md`]) {
@@ -39,66 +41,81 @@ export function resolveWikilinks(filePath, content, repoPath) {
   const broken = [];
   const forbidden = [];
 
-  let match;
-  while ((match = WIKILINK_RE.exec(content)) !== null) {
-    const raw = match[1];
-    const target = raw.split('|')[0].split('#')[0].trim();
-
-    if (!target) continue;
-
-    // Skip placeholders
-    if (PLACEHOLDER_RE.test(target)) continue;
-
-    // Flag forbidden patterns
-    if (FORBIDDEN_RE.test(target)) {
-      forbidden.push(target);
+  let inFencedBlock = false;
+  for (const line of content.split(/\r?\n/)) {
+    if (FENCED_CODE_RE.test(line)) {
+      inFencedBlock = !inFencedBlock;
       continue;
     }
+    if (inFencedBlock) continue;
+    const scanLine = line.replace(INLINE_CODE_SPAN_RE, '');
+    WIKILINK_RE.lastIndex = 0;
 
-    const candidates = [];
-    const seen = new Set();
+    let match;
+    while ((match = WIKILINK_RE.exec(scanLine)) !== null) {
+      const raw = match[1];
+      const target = raw.split('|')[0].split('#')[0].trim();
 
-    // Resolution order:
-    // 1. Relative to repository Knowledge root
-    // 2. Relative to repository root
-    // 3. Relative to package Knowledge root (current package or explicit packages/<pkg>/...)
-    // 4. Relative to current file's directory
-    pushMarkdownCandidates(candidates, seen, join(knowledgeRoot, target));
-    pushMarkdownCandidates(candidates, seen, join(repoPath, target));
+      if (!target) continue;
 
-    const packageTargetMatch = target.match(PACKAGE_TARGET_RE);
-    if (packageTargetMatch) {
-      const [, packageName, packageRelativeTarget] = packageTargetMatch;
-      if (!packageRelativeTarget.startsWith('Knowledge/')) {
-        pushMarkdownCandidates(
-          candidates,
-          seen,
-          join(repoPath, 'packages', packageName, 'Knowledge', packageRelativeTarget),
-        );
+      // Skip placeholders
+      if (PLACEHOLDER_RE.test(target)) continue;
+
+      // Flag forbidden patterns
+      if (FORBIDDEN_RE.test(target)) {
+        forbidden.push(target);
+        continue;
       }
-    }
 
-    if (packageKnowledgeRoot) {
-      pushMarkdownCandidates(candidates, seen, join(packageKnowledgeRoot, target));
-    }
+      const candidates = [];
+      const seen = new Set();
 
-    pushMarkdownCandidates(candidates, seen, join(fileDir, target));
+      // Resolution order:
+      // 1. Relative to repository Knowledge root
+      // 2. Relative to repository root
+      // 3. Relative to package Knowledge root (current package or explicit packages/<pkg>/...)
+      // 4. Relative to current file's directory
+      pushMarkdownCandidates(candidates, seen, join(knowledgeRoot, target));
+      pushMarkdownCandidates(candidates, seen, join(repoPath, target));
 
-    // Filter out candidates that escape the repo root (path traversal protection)
-    // Append platform separator to prevent sibling directory matches (e.g. /tmp/repo-evil matching /tmp/repo)
-    const resolvedRepo = resolve(repoPath);
-    const repoPrefix = resolvedRepo + sep;
-    const safeCandidates = candidates.filter((c) => {
-      const resolvedCandidate = resolve(c);
-      return resolvedCandidate === resolvedRepo || resolvedCandidate.startsWith(repoPrefix);
-    });
-    const found = safeCandidates.some((c) => existsSync(c));
-    if (found) {
-      resolved.push(target);
-    } else {
-      broken.push(target);
+      const packageTargetMatch = target.match(PACKAGE_TARGET_RE);
+      if (packageTargetMatch) {
+        const [, packageName, packageRelativeTarget] = packageTargetMatch;
+        if (!packageRelativeTarget.startsWith('Knowledge/')) {
+          pushMarkdownCandidates(
+            candidates,
+            seen,
+            join(repoPath, 'packages', packageName, 'Knowledge', packageRelativeTarget),
+          );
+        }
+      }
+
+      if (packageKnowledgeRoot) {
+        pushMarkdownCandidates(candidates, seen, join(packageKnowledgeRoot, target));
+      }
+
+      pushMarkdownCandidates(candidates, seen, join(fileDir, target));
+
+      // Filter out candidates that escape the repo root (path traversal protection)
+      // Append platform separator to prevent sibling directory matches (e.g. /tmp/repo-evil matching /tmp/repo)
+      const resolvedRepo = resolve(repoPath);
+      const repoPrefix = resolvedRepo + sep;
+      const safeCandidates = candidates.filter((c) => {
+        const resolvedCandidate = resolve(c);
+        return resolvedCandidate === resolvedRepo || resolvedCandidate.startsWith(repoPrefix);
+      });
+      const found = safeCandidates.some((c) => existsSync(c));
+      if (found) {
+        resolved.push(target);
+      } else {
+        broken.push(target);
+      }
     }
   }
 
-  return { resolved, broken, forbidden };
+  return {
+    resolved: [...new Set(resolved)],
+    broken: [...new Set(broken)],
+    forbidden: [...new Set(forbidden)],
+  };
 }

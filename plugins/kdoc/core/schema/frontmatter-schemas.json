@@ -46,14 +46,19 @@
       "required": ["type", "area", "id", "status", "summary"],
       "optional": ["linear", "tags"]
     },
+    "tldr": {
+      "required": ["type", "id", "status", "date", "summary"],
+      "optional": ["area", "tags", "linear", "module_path", "package_path", "core_paths", "api_paths", "security-tier", "intent"],
+      "status_values": ["draft", "in_progress", "ready", "done", "blocked", "deprecated"]
+    },
     "index": {
-      "required": ["type", "area", "id", "status", "summary"],
-      "optional": ["linear", "tags"]
+      "required": ["type", "id", "status", "summary"],
+      "optional": ["area", "linear", "tags"]
     },
     "context-pack": {
       "required": ["type", "status", "summary"],
       "optional": ["title", "date", "scope", "tags", "aliases", "intent"],
-      "status_values": ["draft", "generated"]
+      "status_values": ["draft", "generated", "ready"]
     },
     "guide": {
       "required": ["type", "status", "summary"],

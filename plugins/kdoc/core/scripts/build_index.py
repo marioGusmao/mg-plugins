@@ -111,7 +111,7 @@ def _templates_dir_name(structure: dict) -> str:
 # Index building (generalized from AVShop2/scripts/build_knowledge_index.py)
 # ---------------------------------------------------------------------------
 
-VALID_STATUSES = {"draft", "in_progress", "ready", "done", "blocked"}
+VALID_STATUSES = {"draft", "in_progress", "ready", "done", "blocked", "deprecated"}
 
 
 @dataclass

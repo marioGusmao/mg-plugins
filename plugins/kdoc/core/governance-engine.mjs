@@ -159,7 +159,21 @@ function collectAdrGovernanceViolations(repoPath, knowledgeRootName) {
   }
 
   const recordsById = new Map(adrRecords.map((record) => [record.id, record]));
+  const requiredSections = ['Decision Drivers', 'Alternatives Considered', 'Decision'];
   for (const record of adrRecords) {
+    const content = safeReadFile(record.path) || '';
+    for (const section of requiredSections) {
+      const pattern = new RegExp(`^##\\s+${section}(\\s|$)`, 'm');
+      if (!pattern.test(content)) {
+        violations.push({
+          code: 'ADR_MISSING_SECTION',
+          severity: 'warning',
+          path: record.path,
+          message: `${record.id} is missing required section "## ${section}"`,
+        });
+      }
+    }
+
     if (record.supersededBy) {
       const successor = recordsById.get(record.supersededBy);
       if (!successor) {
@@ -238,9 +252,13 @@ export function runGovernance(repoPath, options) {
   const knowledgeRoot = join(repoPath, knowledgeRootName);
   const validationResults = [];
   const wikilinkResults = [];
+  const validatedPaths = new Set();
 
   for (const [_areaKey, areaData] of Object.entries(scanResult.areas)) {
     for (const relPath of areaData.files) {
+      if (validatedPaths.has(relPath)) continue;
+      validatedPaths.add(relPath);
+
       const absPath = join(knowledgeRoot, relPath);
       const content = safeReadFile(absPath);
       if (!content) continue;

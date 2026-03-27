@@ -1,5 +1,19 @@
 import { readdirSync, readFileSync, existsSync, statSync } from 'node:fs';
-import { join, relative, extname } from 'node:path';
+import { dirname, join, relative, extname } from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function loadYamlModule() {
+  try {
+    return createRequire(import.meta.url)('yaml');
+  } catch {
+    return createRequire(join(__dirname, '..', '..', 'cli', 'package.json'))('yaml');
+  }
+}
+
+const { parseDocument } = loadYamlModule();
 
 /**
  * Recursively collect all .md files under a directory.
@@ -20,6 +34,25 @@ function walkMd(dir, results = []) {
   return results;
 }
 
+function loadAreaOverrides(repoPath) {
+  const configPath = join(repoPath, '.kdoc.yaml');
+  if (!existsSync(configPath)) return {};
+
+  try {
+    const doc = parseDocument(readFileSync(configPath, 'utf8'));
+    const parsed = doc.toJSON();
+    return parsed?.areas && typeof parsed.areas === 'object' ? parsed.areas : {};
+  } catch {
+    return {};
+  }
+}
+
+function isExplicitlyDisabled(areaOverrides, areaKey) {
+  const areaConfig = areaOverrides[areaKey];
+  if (areaConfig === false) return true;
+  return Boolean(areaConfig && typeof areaConfig === 'object' && areaConfig.enabled === false);
+}
+
 /**
  * Scan a repository's Knowledge directory against the structure schema.
  * @param {string} repoPath - Absolute path to project root
@@ -31,9 +64,12 @@ export function scanRepo(repoPath, structureSchema, config) {
   const knowledgeRoot = join(repoPath, config?.knowledgeRoot ?? 'Knowledge');
   const areas = {};
   const knownPaths = new Set();
+  const areaOverrides = loadAreaOverrides(repoPath);
 
   // Scan built-in areas from schema
   for (const [areaKey, areaDef] of Object.entries(structureSchema.areas)) {
+    if (isExplicitlyDisabled(areaOverrides, areaKey)) continue;
+
     const areaDir = areaDef.directory === '.'
       ? knowledgeRoot
       : join(knowledgeRoot, areaDef.directory);
