@@ -12,6 +12,22 @@ export interface Violation {
   fix: string;
 }
 
+export interface GovernanceCollectorViolation {
+  code: string;
+  severity: 'error' | 'warning';
+  path: string;
+  message: string;
+}
+
+export interface AdrRecord {
+  id: string;
+  number: number;
+  path: string;
+  status: string;
+  supersededBy: string | null;
+  supersedes: string | null;
+}
+
 export interface CoverageByArea {
   exists: boolean;
   fileCount: number;
@@ -131,3 +147,6 @@ export function buildReport(scanResult: ScanResult, validationResults: unknown[]
 export function checkCodegraphAvailable(repoPath: string): CodegraphStatus;
 export function queryDrift(repoPath: string, docFiles: string[]): DriftResult;
 export function emitDaemonEvent(eventType: string, eventData: Record<string, unknown>, repoId?: string, branch?: string): void;
+export function collectLegacyFrontmatterViolations(knowledgeRoot: string, repoPath: string): GovernanceCollectorViolation[];
+export function collectAdrGovernanceViolations(repoPath: string, knowledgeRootName: string): GovernanceCollectorViolation[];
+export function loadAdrRecords(adrDir: string): AdrRecord[];

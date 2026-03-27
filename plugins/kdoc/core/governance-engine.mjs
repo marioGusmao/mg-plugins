@@ -13,7 +13,7 @@ import { resolveWikilinks } from './governance-runtime/wikilink-resolver.mjs';
 import { buildReport } from './governance-runtime/report-builder.mjs';
 import { checkCodegraphAvailable, queryDrift } from './governance-runtime/codegraph-bridge.mjs';
 import { emitDaemonEvent } from './governance-runtime/daemon-spool.mjs';
-import { join } from 'node:path';
+import { isAbsolute, join, relative, resolve } from 'node:path';
 import { existsSync, readdirSync } from 'node:fs';
 
 export { loadSchemas, clearSchemaCache } from './governance-runtime/schema-loader.mjs';
@@ -68,6 +68,18 @@ function listMarkdownFilesRecursive(dir) {
   return files;
 }
 
+function toRepoRelativePath(filePath, repoPath) {
+  if (!filePath) return filePath;
+  if (!isAbsolute(filePath)) return filePath.replaceAll('\\', '/');
+
+  const relativePath = relative(resolve(repoPath), resolve(filePath));
+  if (!relativePath || relativePath === '' || relativePath.startsWith('..')) {
+    return filePath.replaceAll('\\', '/');
+  }
+
+  return relativePath.replaceAll('\\', '/');
+}
+
 function collectLegacyFrontmatterViolations(knowledgeRoot, repoPath) {
   const legacyFields = [
     { legacy: 'superseded_by', canonical: 'superseded-by' },
@@ -83,9 +95,7 @@ function collectLegacyFrontmatterViolations(knowledgeRoot, repoPath) {
     for (const field of legacyFields) {
       const pattern = new RegExp(`^${field.legacy}:\\s*`, 'm');
       if (!pattern.test(frontmatterMatch[1])) continue;
-      const relativePath = filePath.startsWith(`${repoPath}/`)
-        ? filePath.slice(repoPath.length + 1)
-        : filePath;
+      const relativePath = toRepoRelativePath(filePath, repoPath);
       violations.push({
         code: 'LEGACY_FRONTMATTER_FIELD',
         severity: 'warning',
@@ -125,6 +135,7 @@ function loadAdrRecords(adrDir) {
 
 function collectAdrGovernanceViolations(repoPath, knowledgeRootName) {
   const adrDir = join(repoPath, knowledgeRootName, 'ADR');
+  const adrRelativePath = toRepoRelativePath(adrDir, repoPath);
   const adrRecords = loadAdrRecords(adrDir);
   const violations = [];
 
@@ -138,7 +149,7 @@ function collectAdrGovernanceViolations(repoPath, knowledgeRootName) {
       violations.push({
         code: 'ADR_NUMBERING_GAP',
         severity: 'warning',
-        path: 'Knowledge/ADR',
+        path: adrRelativePath,
         message: `ADR numbering gaps detected: ${String(sortedNumbers[i - 1]).padStart(4, '0')} -> ${String(sortedNumbers[i]).padStart(4, '0')}`,
       });
     }
@@ -153,7 +164,7 @@ function collectAdrGovernanceViolations(repoPath, knowledgeRootName) {
     violations.push({
       code: 'ADR_NUMBERING_DUPLICATE',
       severity: 'error',
-      path: 'Knowledge/ADR',
+      path: adrRelativePath,
       message: `Duplicate ADR numbers found: ADR-${String(number).padStart(4, '0')}`,
     });
   }
@@ -168,7 +179,7 @@ function collectAdrGovernanceViolations(repoPath, knowledgeRootName) {
         violations.push({
           code: 'ADR_MISSING_SECTION',
           severity: 'warning',
-          path: record.path,
+          path: toRepoRelativePath(record.path, repoPath),
           message: `${record.id} is missing required section "## ${section}"`,
         });
       }
@@ -180,14 +191,14 @@ function collectAdrGovernanceViolations(repoPath, knowledgeRootName) {
         violations.push({
           code: 'ADR_SUPERSESSION_MISSING_SUCCESSOR',
           severity: 'error',
-          path: record.path,
+          path: toRepoRelativePath(record.path, repoPath),
           message: `${record.id} points to missing successor ${record.supersededBy}`,
         });
       } else if (successor.supersedes !== record.id) {
         violations.push({
           code: 'ADR_SUPERSESSION_ASYMMETRIC',
           severity: 'error',
-          path: record.path,
+          path: toRepoRelativePath(record.path, repoPath),
           message: `${record.id} is superseded by ${record.supersededBy}, but ${record.supersededBy} does not declare supersedes: ${record.id}`,
         });
       }
@@ -196,7 +207,7 @@ function collectAdrGovernanceViolations(repoPath, knowledgeRootName) {
         violations.push({
           code: 'ADR_SUPERSESSION_STATUS',
           severity: 'warning',
-          path: record.path,
+          path: toRepoRelativePath(record.path, repoPath),
           message: `${record.id} has superseded_by set but status is "${record.status || 'missing'}"`,
         });
       }
@@ -208,14 +219,14 @@ function collectAdrGovernanceViolations(repoPath, knowledgeRootName) {
         violations.push({
           code: 'ADR_SUPERSEDES_MISSING',
           severity: 'error',
-          path: record.path,
+          path: toRepoRelativePath(record.path, repoPath),
           message: `${record.id} supersedes missing ADR ${record.supersedes}`,
         });
       } else if (original.supersededBy !== record.id) {
         violations.push({
           code: 'ADR_SUPERSEDES_ASYMMETRIC',
           severity: 'error',
-          path: record.path,
+          path: toRepoRelativePath(record.path, repoPath),
           message: `${record.id} declares supersedes: ${record.supersedes}, but ${record.supersedes} does not set superseded_by: ${record.id}`,
         });
       }
@@ -380,3 +391,5 @@ export function getCoverage(repoPath, paths, schemas, options) {
 
   return coverage;
 }
+
+export { collectAdrGovernanceViolations, collectLegacyFrontmatterViolations, loadAdrRecords };

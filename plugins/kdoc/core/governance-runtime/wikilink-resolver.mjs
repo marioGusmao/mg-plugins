@@ -26,6 +26,71 @@ function getPackageKnowledgeRoot(filePath, repoPath) {
 }
 
 /**
+ * Join multiline wikilinks into single lines.
+ * A wikilink that spans lines (e.g. `[[ADR-0001-some-\nlong-title]]`)
+ * is collapsed so the line-by-line scanner can match it.
+ * Uses non-greedy matching to avoid cross-bracket greediness.
+ * Whitespace around newlines is stripped entirely — wikilink targets
+ * are paths and should not gain extra spaces from line wrapping.
+ */
+function collapseMultilineWikilinks(content) {
+  return content.replace(
+    /\[\[([^\]]*?(?:\n[^\]]*?)*?)\]\]/g,
+    (match) => match.replace(/\s*\n\s*/g, ''),
+  );
+}
+
+/**
+ * Build resolution candidates for a wikilink target.
+ * @param {string} filePath - Absolute path to the source file
+ * @param {string} target - The wikilink target text
+ * @param {string} repoPath - Absolute path to project root
+ * @returns {{ candidates: string[], ambiguous: boolean }}
+ */
+export function collectWikilinkCandidates(filePath, target, repoPath) {
+  const knowledgeRoot = join(repoPath, 'Knowledge');
+  const packageKnowledgeRoot = getPackageKnowledgeRoot(filePath, repoPath);
+  const fileDir = dirname(filePath);
+
+  const candidates = [];
+  const seen = new Set();
+
+  pushMarkdownCandidates(candidates, seen, join(knowledgeRoot, target));
+  pushMarkdownCandidates(candidates, seen, join(repoPath, target));
+
+  const packageTargetMatch = target.match(PACKAGE_TARGET_RE);
+  if (packageTargetMatch) {
+    const [, packageName, packageRelativeTarget] = packageTargetMatch;
+    if (!packageRelativeTarget.startsWith('Knowledge/')) {
+      pushMarkdownCandidates(
+        candidates,
+        seen,
+        join(repoPath, 'packages', packageName, 'Knowledge', packageRelativeTarget),
+      );
+    }
+  }
+
+  if (packageKnowledgeRoot) {
+    pushMarkdownCandidates(candidates, seen, join(packageKnowledgeRoot, target));
+  }
+
+  pushMarkdownCandidates(candidates, seen, join(fileDir, target));
+
+  const resolvedRepo = resolve(repoPath);
+  const repoPrefix = resolvedRepo + sep;
+  const safeCandidates = candidates.filter((c) => {
+    const resolvedCandidate = resolve(c);
+    return resolvedCandidate === resolvedRepo || resolvedCandidate.startsWith(repoPrefix);
+  });
+
+  const existing = safeCandidates.filter((c) => existsSync(c)).sort();
+  return {
+    candidates: existing,
+    ambiguous: existing.length > 1,
+  };
+}
+
+/**
  * Resolve wikilinks in a file's content.
  * @param {string} filePath - Absolute path to the source file
  * @param {string} content - File content
@@ -41,8 +106,11 @@ export function resolveWikilinks(filePath, content, repoPath) {
   const broken = [];
   const forbidden = [];
 
+  // Collapse multiline wikilinks before line-by-line scanning (PRE-3 fix)
+  const normalizedContent = collapseMultilineWikilinks(content);
+
   let inFencedBlock = false;
-  for (const line of content.split(/\r?\n/)) {
+  for (const line of normalizedContent.split(/\r?\n/)) {
     if (FENCED_CODE_RE.test(line)) {
       inFencedBlock = !inFencedBlock;
       continue;

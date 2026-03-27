@@ -8,7 +8,7 @@
     {
       "name": "ai-quality-guardrails",
       "description": "Quality guardrails for AI-assisted development: TDD enforcement, iterative review loops, AI code scrutiny, spec-driven planning, and self-review patterns.",
-      "version": "0.1.6",
+      "version": "0.1.8",
       "source": "./plugins/ai-quality-guardrails",
       "category": "development",
       "keywords": ["quality", "tdd", "code-review", "ai-safety", "spec-driven", "guardrails"]
@@ -32,7 +32,7 @@
     {
       "name": "kdoc",
       "description": "Knowledge documentation toolkit with a governance engine, MCP server (7 tools), and ai-sessions daemon integration",
-      "version": "1.0.10",
+      "version": "1.0.12",
       "source": "./plugins/kdoc",
       "category": "development",
       "keywords": []

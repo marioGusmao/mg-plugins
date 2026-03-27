@@ -7,7 +7,7 @@ scope: {{SCOPE}}
 tags: [ai-context, generated]
 aliases: ["ContextPack"]
 intent: "Provide a compact, high-signal entry point for AI agents working in this Knowledge base."
-summary: ""
+summary: "AI context pack for {{PROJECT_NAME}}."
 ---
 
 # ContextPack — {{PROJECT_NAME}}
