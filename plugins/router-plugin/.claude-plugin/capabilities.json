@@ -1,0 +1,23 @@
+{
+  "plugin": "router-plugin",
+  "version": "1.0.3",
+  "schema_version": "1.0.0",
+  "capabilities": [
+    {
+      "id": "router-plugin.consume_inbox",
+      "name": "Consume router inbox",
+      "type": "skill",
+      "applicable_phases": ["implement"],
+      "guidance": "Check router inbox for incoming work before starting tasks. Validate protocol contract before acting.",
+      "priority": 6
+    },
+    {
+      "id": "router-plugin.write_packets",
+      "name": "Write router packets",
+      "type": "skill",
+      "applicable_phases": ["implement"],
+      "guidance": "Send results via router packets using the destination contract to choose supported packet types.",
+      "priority": 6
+    }
+  ]
+}

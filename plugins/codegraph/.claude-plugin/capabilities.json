@@ -1,0 +1,71 @@
+{
+  "plugin": "codegraph",
+  "version": "1.1.10",
+  "schema_version": "1.0.0",
+  "capabilities": [
+    {
+      "id": "codegraph.blast_radius",
+      "name": "Blast radius analysis",
+      "type": "mcp_tool",
+      "tool": "codegraph_blast",
+      "applicable_phases": ["implement", "review", "fix"],
+      "guidance": "Run codegraph_blast BEFORE editing any function used elsewhere. Shows all callers that would break.",
+      "anti_patterns": ["Do NOT skip blast radius for 'small' changes — cross-file impact is invisible without it."],
+      "priority": 10
+    },
+    {
+      "id": "codegraph.codebase_brief",
+      "name": "Architecture overview",
+      "type": "mcp_tool",
+      "tool": "codegraph_brief",
+      "applicable_phases": ["plan", "implement", "review"],
+      "guidance": "Run codegraph_brief at task start for architecture context.",
+      "priority": 5
+    },
+    {
+      "id": "codegraph.callers",
+      "name": "Caller chain analysis",
+      "type": "mcp_tool",
+      "tool": "codegraph_callers",
+      "applicable_phases": ["implement", "review"],
+      "guidance": "Run codegraph_callers to trace who calls a function before renaming or changing its signature.",
+      "priority": 8
+    },
+    {
+      "id": "codegraph.callees",
+      "name": "Callee chain analysis",
+      "type": "mcp_tool",
+      "tool": "codegraph_callees",
+      "applicable_phases": ["implement", "review"],
+      "guidance": "Run codegraph_callees to understand what a function depends on before refactoring.",
+      "priority": 7
+    },
+    {
+      "id": "codegraph.dependency_graph",
+      "name": "File dependency analysis",
+      "type": "mcp_tool",
+      "tool": "codegraph_depends",
+      "applicable_phases": ["implement", "review"],
+      "guidance": "Run codegraph_depends before moving, renaming, or restructuring files.",
+      "priority": 8
+    },
+    {
+      "id": "codegraph.symbol_search",
+      "name": "Symbol search",
+      "type": "mcp_tool",
+      "tool": "codegraph_search",
+      "applicable_phases": ["plan", "implement"],
+      "guidance": "Run codegraph_search to find symbols by name or kind across the codebase.",
+      "priority": 6
+    },
+    {
+      "id": "codegraph.status",
+      "name": "Index status",
+      "type": "mcp_tool",
+      "tool": "codegraph_status",
+      "applicable_phases": ["cross_phase"],
+      "guidance": "Run codegraph_status to check whether the index is current before querying.",
+      "priority": 3
+    }
+  ]
+}

@@ -44,6 +44,112 @@ $sql
 SQL
 }
 
+extract_reconcile_health() {
+  local reconcile_json="$1"
+
+  jq -rc '
+    (.[0]? // {}) as $row
+    | ($row.event_data // "" | fromjson? // {}) as $event
+    | ($event.by_tier // {}) as $tiers
+    | ($event.by_code // {}) as $codes
+    | {
+        created_at: ($row.created_at // ""),
+        findings_count: (($event.findings_count // 0) | tonumber? // 0),
+        auto_fix_count: (($tiers.auto_fix // 0) | tonumber? // 0),
+        needs_approval_count: (($tiers.needs_approval // 0) | tonumber? // 0),
+        report_only_count: (($tiers.report_only // 0) | tonumber? // 0),
+        codes_summary: (
+          $codes
+          | to_entries
+          | sort_by(-(.value | tonumber? // 0), .key)
+          | .[:5]
+          | map(.key + "=" + ((.value | tonumber? // 0) | tostring))
+          | join(", ")
+        )
+      }
+  ' <<<"$reconcile_json" 2>/dev/null || printf '{}'
+}
+
+render_knowledge_health_body() {
+  local health_json="$1"
+
+  jq -r '
+    if ((.findings_count // 0) | tonumber? // 0) == 0 then
+      [
+        "- Latest reconcile check: " + (.created_at // "unknown"),
+        "- Status: clean",
+        "- Auto-fix findings: " + (((.auto_fix_count // 0) | tonumber? // 0) | tostring),
+        "- Needs approval: " + (((.needs_approval_count // 0) | tonumber? // 0) | tostring),
+        "- Report only: " + (((.report_only_count // 0) | tonumber? // 0) | tostring)
+      ]
+    else
+      [
+        "- Latest reconcile check: " + (.created_at // "unknown"),
+        "- Total findings: " + (((.findings_count // 0) | tonumber? // 0) | tostring),
+        "- Auto-fix findings: " + (((.auto_fix_count // 0) | tonumber? // 0) | tostring),
+        "- Needs approval: " + (((.needs_approval_count // 0) | tonumber? // 0) | tostring),
+        "- Report only: " + (((.report_only_count // 0) | tonumber? // 0) | tostring)
+      ]
+      + (if (.codes_summary // "") != "" then ["- Top finding codes: " + .codes_summary] else [] end)
+    end
+    | join("\n")
+  ' <<<"$health_json" 2>/dev/null || true
+}
+
+persist_context_inject_event() {
+  local repo_id="$1"
+  local branch="$2"
+  local session_id="$3"
+  local auto_fix_count="$4"
+  local needs_approval_count="$5"
+
+  local event_data columns_sql values_sql event_columns
+  event_data="$(
+    jq -nc \
+      --argjson auto_fix_count "${auto_fix_count:-0}" \
+      --argjson needs_approval_count "${needs_approval_count:-0}" \
+      '{
+        kdoc_health: {
+          signal_source: "continuity_packet",
+          auto_fix_count: $auto_fix_count,
+          needs_approval_count: $needs_approval_count
+        }
+      }'
+  )"
+
+  local event_id
+  event_id="$(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "cp-$(date +%s)-$$")"
+
+  columns_sql="event_id, event_type, event_data, created_at"
+  values_sql="@event_id, @event_type, @event_data, datetime('now')"
+  event_columns="$(sqlite3 "$DB_PATH" "PRAGMA table_info(events);" 2>/dev/null | awk -F'|' '{print $2}')"
+
+  if grep -qx 'repo_id' <<<"$event_columns"; then
+    columns_sql+=", repo_id"
+    values_sql+=", @repo_id"
+  fi
+  if grep -qx 'branch' <<<"$event_columns"; then
+    columns_sql+=", branch"
+    values_sql+=", @branch"
+  fi
+  if grep -qx 'session_id' <<<"$event_columns"; then
+    columns_sql+=", session_id"
+    values_sql+=", @session_id"
+  fi
+
+  sqlite3 "$DB_PATH" <<SQL >/dev/null 2>&1 || return 1
+.parameter init
+.parameter set @event_id $(sql_param "$event_id")
+.parameter set @event_type 'context.inject'
+.parameter set @event_data $(sql_param "$event_data")
+.parameter set @repo_id $(sql_param "$repo_id")
+.parameter set @branch $(sql_param "$branch")
+.parameter set @session_id $(sql_param "${session_id:-continuity-packet}")
+INSERT INTO events ($columns_sql)
+VALUES ($values_sql);
+SQL
+}
+
 render_section() {
   local title="$1"
   local body="$2"
@@ -73,7 +179,7 @@ main() {
     [[ -n "$branch" ]] || branch="$(jq -r '.branch // empty' <<<"$git_json")"
   fi
 
-  local pending_json accomplished_json failed_json decisions_json concurrent_json recent_prompts_json pending_actions_json open_flags_json unread_cross_workshop_json
+  local pending_json accomplished_json failed_json decisions_json concurrent_json recent_prompts_json pending_actions_json open_flags_json unread_cross_workshop_json reconcile_health_json
   pending_json="$(run_query "$repo_id" "$branch" "$session_id" "
     SELECT category, description, file_pattern
     FROM plan_items
@@ -195,8 +301,16 @@ main() {
       m.created_at DESC
     LIMIT 5;
   ")"
+  reconcile_health_json="$(run_query "$repo_id" "$branch" "$session_id" "
+    SELECT event_data, created_at
+    FROM events
+    WHERE event_type = 'reconcile.check'
+      AND repo_id = @repo
+    ORDER BY created_at DESC
+    LIMIT 1;
+  ")"
 
-  local pending_body accomplished_body failed_body decisions_body concurrent_body recent_prompts_body pending_actions_body open_flags_body unread_cross_workshop_body warnings_body work_stream_body
+  local pending_body accomplished_body failed_body decisions_body concurrent_body recent_prompts_body pending_actions_body open_flags_body unread_cross_workshop_body warnings_body work_stream_body knowledge_health_body knowledge_health_summary reconcile_health_count
   pending_body="$(jq -r '
     map("- " + ((.category // "task") + ": " + .description + (if (.file_pattern // "") != "" then " (" + .file_pattern + ")" else "" end)))
     | join("\n")
@@ -234,6 +348,14 @@ main() {
     map("- " + (.from_workshop_name // "unknown") + " [" + (.priority // "normal") + "/" + (.message_type // "message") + "] " + (.created_at // "unknown") + ": " + ((.content // "") | tostring | .[0:120]))
     | join("\n")
   ' <<<"$unread_cross_workshop_json" 2>/dev/null || true)"
+  reconcile_health_count="$(jq -r 'length' <<<"$reconcile_health_json" 2>/dev/null || echo 0)"
+  if [[ "$reconcile_health_count" -gt 0 ]]; then
+    knowledge_health_summary="$(extract_reconcile_health "$reconcile_health_json")"
+    knowledge_health_body="$(render_knowledge_health_body "$knowledge_health_summary")"
+  else
+    knowledge_health_summary='{}'
+    knowledge_health_body=''
+  fi
 
   local pending_count concurrent_count failed_count pending_actions_count open_flags_count unread_cross_workshop_count stale_pending_count
   pending_count="$(jq -r 'length' <<<"$pending_json" 2>/dev/null || echo 0)"
@@ -256,12 +378,28 @@ main() {
   )"
   work_stream_body="Branch: ${branch:-unknown} | Repo: ${repo_id:-unknown}"
 
-  if [[ -z "$work_stream_body$pending_body$accomplished_body$failed_body$decisions_body$concurrent_body$recent_prompts_body$pending_actions_body$open_flags_body$unread_cross_workshop_body$warnings_body" ]]; then
+  if [[ -n "$knowledge_health_body" ]]; then
+    persist_context_inject_event \
+      "$repo_id" \
+      "$branch" \
+      "${session_id:-continuity-packet}" \
+      "$(jq -r '(.auto_fix_count // 0) | tonumber? // 0' <<<"$knowledge_health_summary" 2>/dev/null || echo 0)" \
+      "$(jq -r '(.needs_approval_count // 0) | tonumber? // 0' <<<"$knowledge_health_summary" 2>/dev/null || echo 0)" \
+      || warnings_body="$(
+        {
+          [[ -n "$warnings_body" ]] && printf '%s\n' "$warnings_body"
+          printf -- '- Failed to persist continuity-packet dedupe signal.\n'
+        } | sed '/^$/d'
+      )"
+  fi
+
+  if [[ -z "$work_stream_body$knowledge_health_body$pending_body$accomplished_body$failed_body$decisions_body$concurrent_body$recent_prompts_body$pending_actions_body$open_flags_body$unread_cross_workshop_body$warnings_body" ]]; then
     return
   fi
 
   render_section "Warnings" "$warnings_body"
   render_section "Work Stream" "$work_stream_body"
+  render_section "Knowledge Health" "$knowledge_health_body"
   render_section "Pending Work Items" "$pending_body"
   render_section "Recent Accomplishments" "$accomplished_body"
   render_section "Failed Attempts" "$failed_body"

@@ -1,0 +1,31 @@
+{
+  "plugin": "claude-utils",
+  "version": "1.0.7",
+  "schema_version": "1.0.0",
+  "capabilities": [
+    {
+      "id": "claude-utils.notifications",
+      "name": "Desktop notifications",
+      "type": "hook",
+      "applicable_phases": ["cross_phase"],
+      "guidance": "Cross-platform desktop notifications fire on Stop events automatically.",
+      "priority": 5
+    },
+    {
+      "id": "claude-utils.git_context",
+      "name": "Git context injection",
+      "type": "hook",
+      "applicable_phases": ["cross_phase"],
+      "guidance": "Git branch, status, and recent commits injected on SessionStart automatically.",
+      "priority": 6
+    },
+    {
+      "id": "claude-utils.session_capture",
+      "name": "Session data capture",
+      "type": "hook",
+      "applicable_phases": ["cross_phase"],
+      "guidance": "Session events captured to ai-sessions daemon spool for analytics and continuity.",
+      "priority": 4
+    }
+  ]
+}

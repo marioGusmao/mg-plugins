@@ -1,0 +1,90 @@
+{
+  "plugin": "ai-quality-guardrails",
+  "version": "0.1.7",
+  "schema_version": "1.0.0",
+  "capabilities": [
+    {
+      "id": "ai-quality-guardrails.tdd_enforcement",
+      "name": "TDD enforcement",
+      "type": "skill",
+      "applicable_phases": ["implement"],
+      "guidance": "Write a failing test first, then implement to make it pass, then refactor. Full red-green-refactor cycle.",
+      "anti_patterns": ["Do NOT write implementation before the test exists.", "Do NOT skip the refactor step."],
+      "priority": 10
+    },
+    {
+      "id": "ai-quality-guardrails.self_review",
+      "name": "Self-review before done",
+      "type": "skill",
+      "applicable_phases": ["implement", "review"],
+      "guidance": "Before claiming work is complete, run self-validation against plan acceptance criteria and verify with actual commands.",
+      "anti_patterns": ["Do NOT claim done without running verification commands.", "Do NOT skip comparison against the plan."],
+      "priority": 9
+    },
+    {
+      "id": "ai-quality-guardrails.ai_code_scrutiny",
+      "name": "AI code scrutiny checklist",
+      "type": "skill",
+      "applicable_phases": ["review"],
+      "guidance": "Apply the systematic checklist for hallucinated APIs, phantom dependencies, OWASP vulnerabilities, and logic errors.",
+      "anti_patterns": ["Do NOT trust AI-generated code without running the scrutiny checklist."],
+      "priority": 9
+    },
+    {
+      "id": "ai-quality-guardrails.parallel_review",
+      "name": "Multi-perspective parallel review",
+      "type": "skill",
+      "applicable_phases": ["review"],
+      "guidance": "Launch 2-3 reviewer agents in parallel, each focused on a different perspective (correctness, security, maintainability).",
+      "priority": 8
+    },
+    {
+      "id": "ai-quality-guardrails.review_loop",
+      "name": "Iterative review loop",
+      "type": "skill",
+      "applicable_phases": ["review"],
+      "guidance": "After review findings, re-review until findings drop below the pass threshold.",
+      "priority": 7
+    },
+    {
+      "id": "ai-quality-guardrails.plan_with_ac",
+      "name": "Plan with acceptance criteria",
+      "type": "skill",
+      "applicable_phases": ["plan"],
+      "guidance": "Include numbered acceptance criteria, concrete test scenarios, and milestone breakdowns in every plan.",
+      "priority": 8
+    },
+    {
+      "id": "ai-quality-guardrails.explorer",
+      "name": "Codebase exploration agent",
+      "type": "agent",
+      "applicable_phases": ["plan", "implement", "review"],
+      "guidance": "Use for file search, pattern discovery, and architecture analysis. Read-only.",
+      "priority": 6
+    },
+    {
+      "id": "ai-quality-guardrails.implementer",
+      "name": "Code implementation agent",
+      "type": "agent",
+      "applicable_phases": ["implement"],
+      "guidance": "Use for writing code and executing approved plans.",
+      "priority": 7
+    },
+    {
+      "id": "ai-quality-guardrails.reviewer",
+      "name": "Code review agent",
+      "type": "agent",
+      "applicable_phases": ["review"],
+      "guidance": "Use for thorough reviews with severity-based analysis. Read-only.",
+      "priority": 8
+    },
+    {
+      "id": "ai-quality-guardrails.validator",
+      "name": "Validation runner agent",
+      "type": "agent",
+      "applicable_phases": ["implement", "review"],
+      "guidance": "Use for running lint, typecheck, tests, and reporting pass/fail results.",
+      "priority": 7
+    }
+  ]
+}

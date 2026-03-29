@@ -529,6 +529,65 @@ main() {
         "$CONTINUITY_SCRIPT" "$repo_id" "$branch" "$session_id" "$project_dir"
       fi
       ;;
+
+    # ---- kdoc reconcile lifecycle events (passthrough to spool) ----
+    reconcile.check)
+      local rc_data
+      rc_data="$(jq -nc \
+        --argjson p "$payload" \
+        '{
+          findings_count: ($p.findings_count // 0),
+          by_tier: ($p.by_tier // {}),
+          by_code: ($p.by_code // {}),
+          invocation_id: ($p.invocation_id // null)
+        }' 2>/dev/null)" || rc_data='{"findings_count":0}'
+      write_spool "reconcile.check" "$rc_data" "$session_id" "$repo_id" "$branch" "hook:reconcile"
+      ;;
+    reconcile.plan_created)
+      local rp_data
+      rp_data="$(jq -nc \
+        --argjson p "$payload" \
+        '{
+          plan_path: ($p.plan_path // ""),
+          findings_count: ($p.findings_count // 0),
+          invocation_id: ($p.invocation_id // null)
+        }' 2>/dev/null)" || rp_data='{}'
+      write_spool "reconcile.plan_created" "$rp_data" "$session_id" "$repo_id" "$branch" "hook:reconcile"
+      ;;
+    reconcile.repair_applied)
+      local ra_data
+      ra_data="$(jq -nc \
+        --argjson p "$payload" \
+        '{
+          code: ($p.code // ""),
+          file_path: ($p.file_path // ""),
+          tier: ($p.tier // ""),
+          invocation_id: ($p.invocation_id // null)
+        }' 2>/dev/null)" || ra_data='{}'
+      write_spool "reconcile.repair_applied" "$ra_data" "$session_id" "$repo_id" "$branch" "hook:reconcile"
+      ;;
+    reconcile.repair_failed)
+      local rf_data
+      rf_data="$(jq -nc \
+        --argjson p "$payload" \
+        '{
+          code: ($p.code // ""),
+          file_path: ($p.file_path // ""),
+          reason: ($p.reason // ""),
+          invocation_id: ($p.invocation_id // null)
+        }' 2>/dev/null)" || rf_data='{}'
+      write_spool "reconcile.repair_failed" "$rf_data" "$session_id" "$repo_id" "$branch" "hook:reconcile"
+      ;;
+    reconcile.clean)
+      local rcl_data
+      rcl_data="$(jq -nc \
+        --argjson p "$payload" \
+        '{
+          repairs_applied: ($p.repairs_applied // 0),
+          invocation_id: ($p.invocation_id // null)
+        }' 2>/dev/null)" || rcl_data='{"repairs_applied":0}'
+      write_spool "reconcile.clean" "$rcl_data" "$session_id" "$repo_id" "$branch" "hook:reconcile"
+      ;;
   esac
 
 }

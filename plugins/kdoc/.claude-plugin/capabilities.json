@@ -1,0 +1,94 @@
+{
+  "plugin": "kdoc",
+  "version": "1.0.11",
+  "schema_version": "1.0.0",
+  "capabilities": [
+    {
+      "id": "kdoc.health_check",
+      "name": "Knowledge governance health check",
+      "type": "mcp_tool",
+      "tool": "kdoc_health",
+      "applicable_phases": ["review", "docs"],
+      "guidance": "Run kdoc_health after documentation changes to verify governance rules.",
+      "priority": 7
+    },
+    {
+      "id": "kdoc.validate",
+      "name": "Frontmatter validation",
+      "type": "mcp_tool",
+      "tool": "kdoc_validate",
+      "applicable_phases": ["review", "docs"],
+      "guidance": "Run kdoc_validate on new or modified Knowledge files to check frontmatter compliance.",
+      "priority": 8
+    },
+    {
+      "id": "kdoc.coverage",
+      "name": "Documentation coverage metrics",
+      "type": "mcp_tool",
+      "tool": "kdoc_coverage",
+      "applicable_phases": ["review", "docs"],
+      "guidance": "Run kdoc_coverage to identify undocumented modules.",
+      "priority": 6
+    },
+    {
+      "id": "kdoc.suggest",
+      "name": "Documentation suggestions",
+      "type": "mcp_tool",
+      "tool": "kdoc_suggest",
+      "applicable_phases": ["plan", "docs"],
+      "guidance": "Run kdoc_suggest to get recommendations for missing documentation.",
+      "priority": 5
+    },
+    {
+      "id": "kdoc.schema",
+      "name": "Knowledge schema definitions",
+      "type": "mcp_tool",
+      "tool": "kdoc_schema",
+      "applicable_phases": ["plan", "implement"],
+      "guidance": "Run kdoc_schema to retrieve current schema definitions for Knowledge files.",
+      "priority": 4
+    },
+    {
+      "id": "kdoc.reconcile",
+      "name": "Documentation vs code reconciliation",
+      "type": "mcp_tool",
+      "tool": "kdoc_reconcile",
+      "applicable_phases": ["review"],
+      "guidance": "Run kdoc_reconcile to compare documentation against code reality and detect drift.",
+      "priority": 7
+    },
+    {
+      "id": "kdoc.impact",
+      "name": "Documentation impact analysis",
+      "type": "mcp_tool",
+      "tool": "kdoc_impact",
+      "applicable_phases": ["implement", "review"],
+      "guidance": "Run kdoc_impact before changing documented modules to find affected Knowledge docs.",
+      "priority": 8
+    },
+    {
+      "id": "kdoc.adr_create",
+      "name": "Architecture Decision Record creation",
+      "type": "skill",
+      "applicable_phases": ["plan", "implement"],
+      "guidance": "Use adr-create for architecture decisions. Check existing ADRs before proposing alternatives.",
+      "priority": 9
+    },
+    {
+      "id": "kdoc.tldr_create",
+      "name": "TLDR document creation",
+      "type": "skill",
+      "applicable_phases": ["plan", "docs"],
+      "guidance": "Use tldr-create to document module scope, requirements, and gap tags.",
+      "priority": 7
+    },
+    {
+      "id": "kdoc.governance_check",
+      "name": "Governance check skill",
+      "type": "skill",
+      "applicable_phases": ["review", "docs"],
+      "guidance": "Use governance-check to scan for structural and reference issues in Knowledge files.",
+      "priority": 8
+    }
+  ]
+}

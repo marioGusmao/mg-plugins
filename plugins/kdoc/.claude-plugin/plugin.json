@@ -1,7 +1,7 @@
 {
   "name": "kdoc",
   "description": "Knowledge documentation toolkit with a governance engine, MCP server (7 tools), and ai-sessions daemon integration",
-  "version": "1.0.12",
+  "version": "1.0.16",
   "author": {
     "name": "MRM"
   },
