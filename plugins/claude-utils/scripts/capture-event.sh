@@ -588,6 +588,43 @@ main() {
         }' 2>/dev/null)" || rcl_data='{"repairs_applied":0}'
       write_spool "reconcile.clean" "$rcl_data" "$session_id" "$repo_id" "$branch" "hook:reconcile"
       ;;
+    lesson.injected)
+      # Batch form: { lesson_ids: [...], agent: "...", workshop: "..." }
+      # Single form: { lesson_id: "...", agent: "...", workshop: "..." }
+      local li_data
+      li_data="$(jq -nc \
+        --argjson p "$payload" \
+        '{
+          lesson_ids: (if $p.lesson_ids then $p.lesson_ids elif $p.lesson_id then [$p.lesson_id] else [] end),
+          agent: ($p.agent // null),
+          workshop_name: ($p.workshop // $p.workshop_name // null),
+          phase: ($p.phase // null)
+        }' 2>/dev/null)" || li_data='{"lesson_ids":[]}'
+      write_spool "lesson.injected" "$li_data" "$session_id" "$repo_id" "$branch" "hook:lesson"
+      ;;
+    lesson.followed)
+      local lf_data
+      lf_data="$(jq -nc \
+        --argjson p "$payload" \
+        '{
+          lesson_id: ($p.lesson_id // ""),
+          agent_name: ($p.agent_name // $p.agent // null),
+          workshop_name: ($p.workshop_name // $p.workshop // null),
+          evidence: ($p.evidence // $p.detail // null)
+        }' 2>/dev/null)" || lf_data='{}'
+      write_spool "lesson.followed" "$lf_data" "$session_id" "$repo_id" "$branch" "hook:lesson"
+      ;;
+    lesson.useful)
+      local lu_data
+      lu_data="$(jq -nc \
+        --argjson p "$payload" \
+        '{
+          lesson_id: ($p.lesson_id // ""),
+          workshop_name: ($p.workshop_name // $p.workshop // null),
+          detail: ($p.detail // null)
+        }' 2>/dev/null)" || lu_data='{}'
+      write_spool "lesson.useful" "$lu_data" "$session_id" "$repo_id" "$branch" "hook:lesson"
+      ;;
   esac
 
 }
