@@ -1,4 +1,10 @@
 #!/usr/bin/env node
+import {
+  loadConfig,
+  runReconcileCheck,
+  runReconcileFix,
+  runReconcilePlan
+} from "./chunk-GVFDEDEZ.js";
 
 // src/mcp/server.ts
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -17,27 +23,6 @@ function checkCodegraph(projectDir) {
     return { available: true, dbPath };
   }
   return { available: false, reason: "CodeGraph database not found at .codegraph/graph.db" };
-}
-function grepExports(scanPath) {
-  try {
-    const result = spawnSync("grep", [
-      "-rn",
-      "--include=*.ts",
-      "--include=*.js",
-      "--include=*.tsx",
-      "--include=*.jsx",
-      "-E",
-      "^export (function|class|const|type|interface|enum) ",
-      scanPath
-    ], { encoding: "utf8", timeout: 1e4 });
-    if (!result.stdout) return [];
-    return result.stdout.split("\n").filter(Boolean).map((line) => {
-      const match = line.match(/export (?:function|class|const|type|interface|enum) (\w+)/);
-      return match ? match[1] : "";
-    }).filter(Boolean);
-  } catch {
-    return [];
-  }
 }
 function walkMdFiles(dir) {
   const results = [];
@@ -68,57 +53,6 @@ function findSymbolInDocs(knowledgeRoot, symbolName) {
     }
   }
   return matches;
-}
-function degradedReconcile(repoPath, scanPath) {
-  const knowledgeRoot = join(repoPath, "Knowledge");
-  if (!existsSync(knowledgeRoot)) {
-    return {
-      degraded: true,
-      driftItems: [{ doc: "Knowledge/", finding: "Knowledge directory not found", severity: "error" }],
-      confidence: "low",
-      reason: "CodeGraph not available and Knowledge directory missing"
-    };
-  }
-  const exports = grepExports(scanPath);
-  const driftItems = [];
-  if (exports.length === 0) {
-    driftItems.push({
-      doc: scanPath,
-      finding: "No exported symbols found via grep \u2014 cannot verify documentation coverage",
-      severity: "info"
-    });
-  } else {
-    const documented = /* @__PURE__ */ new Set();
-    const undocumented = [];
-    for (const exp of exports.slice(0, 50)) {
-      const refs = findSymbolInDocs(knowledgeRoot, exp);
-      if (refs.length > 0) {
-        documented.add(exp);
-      } else {
-        undocumented.push(exp);
-      }
-    }
-    if (undocumented.length > 0) {
-      driftItems.push({
-        doc: scanPath,
-        finding: `${undocumented.length} exported symbol(s) not referenced in Knowledge docs: ${undocumented.slice(0, 5).join(", ")}${undocumented.length > 5 ? "..." : ""}`,
-        severity: "warning"
-      });
-    }
-    if (documented.size > 0) {
-      driftItems.push({
-        doc: scanPath,
-        finding: `${documented.size} exported symbol(s) found in Knowledge docs`,
-        severity: "info"
-      });
-    }
-  }
-  return {
-    degraded: true,
-    driftItems,
-    confidence: "low",
-    reason: "CodeGraph not available \u2014 using grep-based heuristics"
-  };
 }
 function degradedImpact(repoPath, changedFiles) {
   const knowledgeRoot = join(repoPath, "Knowledge");
@@ -250,25 +184,46 @@ Types: ${Object.keys(schemas.frontmatter.types).join(", ")}`,
     schemas
   );
 }
-async function handleReconcile(args) {
-  const engine = await cachedEngine();
-  const cg = checkCodegraph(args.repoPath);
-  const result = degradedReconcile(args.repoPath, args.path);
-  const driftCount = result.driftItems.filter((d) => d.severity !== "info").length;
-  if (driftCount > 0) {
-    engine.emitDaemonEvent("kdoc.doc_drift", {
-      degraded: !cg.available,
-      path: args.path,
-      driftCount,
-      confidence: result.confidence
-    });
+function buildReconcileScope(args) {
+  const scope = {
+    area: args.area,
+    package: args.package,
+    path: args.path
+  };
+  return Object.values(scope).some((value) => typeof value === "string" && value.trim() !== "") ? scope : void 0;
+}
+function summarizeReconcile(mode, payload) {
+  const findings = Array.isArray(payload.findings) ? payload.findings.length : 0;
+  const warnings = Array.isArray(payload.warnings) ? payload.warnings.length : 0;
+  if (mode === "fix") {
+    const repairs = Array.isArray(payload.results) ? payload.results.length : 0;
+    const deferredCount = typeof payload.deferredCount === "number" ? payload.deferredCount : 0;
+    const clean = payload.clean === true ? "clean" : "remaining findings";
+    return `Reconcile fix: ${repairs} repair(s) applied, ${deferredCount} deferred, ${clean}.`;
   }
-  const text = result.driftItems.length > 0 ? result.driftItems.map((d) => `[${d.severity}] ${d.finding}`).join("\n") : "No drift detected.";
-  return textResponse(
-    `Reconcile (${result.confidence} confidence, ${cg.available ? "codegraph" : "heuristic"}):
-${text}`,
-    { ...result, codegraphAvailable: cg.available }
-  );
+  if (mode === "plan") {
+    return `Reconcile plan: ${findings} finding(s) captured.`;
+  }
+  return `Reconcile check: ${findings} finding(s), ${warnings} warning(s).`;
+}
+async function handleReconcile(args) {
+  const mode = args.mode ?? "check";
+  const scope = buildReconcileScope(args);
+  const config = loadConfig(args.repoPath);
+  if (!config) {
+    return textResponse("Error: .kdoc.yaml not found. Run `kdoc init` first.", { error: "no config" });
+  }
+  let result;
+  if (mode === "plan") {
+    result = await runReconcilePlan(args.repoPath, config, scope);
+  } else if (mode === "fix") {
+    result = await runReconcileFix(args.repoPath, config, scope, {
+      approve: args.approve
+    });
+  } else {
+    result = await runReconcileCheck(args.repoPath, config, scope);
+  }
+  return textResponse(summarizeReconcile(mode, result), result);
 }
 async function handleImpact(args) {
   if (args.changedFiles.length === 0) {
@@ -343,10 +298,14 @@ async function startServer(projectDir) {
   server.registerTool(
     "kdoc_reconcile",
     {
-      description: "Compare documentation against code reality (requires CodeGraph for full analysis, degrades gracefully without)",
+      description: "Run reconcile against the shared engine in check, plan, or fix mode",
       inputSchema: {
         repoPath: z.string().describe("Absolute path to the project root"),
-        path: z.string().describe("Specific path to reconcile within the project")
+        mode: z.enum(["check", "plan", "fix"]).optional().describe("Execution mode. Defaults to check."),
+        approve: z.boolean().optional().describe("Allow approval-gated repairs when mode=fix"),
+        area: z.string().optional().describe("Limit reconciliation to a Knowledge area"),
+        package: z.string().optional().describe("Limit reconciliation to a package scope"),
+        path: z.string().optional().describe("Limit reconciliation to a specific repo-relative path")
       }
     },
     safeHandler(async (args) => handleReconcile(args))
@@ -376,4 +335,4 @@ export {
   parseProjectDir,
   startServer
 };
-//# sourceMappingURL=server-LKREY57Y.js.map
+//# sourceMappingURL=server-FJGIFZNG.js.map

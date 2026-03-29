@@ -2,7 +2,7 @@
   "description": "Frontmatter field definitions per document type. Consumed by kdoc doctor and governance scripts.",
   "version": "1",
   "field_values": {
-    "security-tier": ["public", "internal", "confidential", "critical"]
+    "security-tier": ["public", "standard", "internal", "elevated", "confidential", "critical"]
   },
   "types": {
     "adr": {
@@ -25,12 +25,12 @@
     "phase": {
       "required": ["type", "area", "id", "status", "summary"],
       "optional": ["depends_on", "last_reviewed", "sub_phases", "work_units_total", "next_work_units", "tags", "security-tier"],
-      "status_values": ["pending", "in-progress", "completed", "completed_with_notes"]
+      "status_values": ["pending", "in_progress", "completed", "completed_with_notes", "blocked"]
     },
     "sub-phase": {
       "required": ["type", "area", "id", "parent_phase", "status", "summary"],
       "optional": ["blocked_by", "parallel_with", "tags", "security-tier"],
-      "status_values": ["pending", "in-progress", "completed", "completed_with_notes"]
+      "status_values": ["pending", "in_progress", "completed", "completed_with_notes", "blocked"]
     },
     "runbook": {
       "required": ["type", "status", "summary"],
