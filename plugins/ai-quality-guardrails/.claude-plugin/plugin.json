@@ -1,6 +1,6 @@
 {
   "name": "ai-quality-guardrails",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Quality guardrails for AI-assisted development: TDD enforcement, iterative review loops, AI code scrutiny, spec-driven planning, and self-review patterns.",
   "author": {
     "name": "Mário Silva Gusmão"
