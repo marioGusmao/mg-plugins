@@ -1,0 +1,6 @@
+interface:
+  display_name: "Git Context Brief"
+  short_description: "Collect branch, recent commits, and dirty-tree context before working"
+
+policy:
+  allow_implicit_invocation: true

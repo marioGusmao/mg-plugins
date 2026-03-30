@@ -1,0 +1,6 @@
+interface:
+  display_name: "Tmux Focus"
+  short_description: "Inspect tmux targets and jump to the correct session, window, or pane"
+
+policy:
+  allow_implicit_invocation: false

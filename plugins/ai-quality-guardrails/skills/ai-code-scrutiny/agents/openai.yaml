@@ -1,0 +1,6 @@
+interface:
+  display_name: "AI Code Scrutiny"
+  short_description: "Audit AI-generated code for hallucinations, security gaps, and control-flow omissions"
+
+policy:
+  allow_implicit_invocation: true

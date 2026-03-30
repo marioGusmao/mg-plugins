@@ -1,0 +1,6 @@
+interface:
+  display_name: "Consume Router Inbox"
+  short_description: "Safely process repository-local router inbox packets and emit acknowledgements only after real decisions"
+
+policy:
+  allow_implicit_invocation: true

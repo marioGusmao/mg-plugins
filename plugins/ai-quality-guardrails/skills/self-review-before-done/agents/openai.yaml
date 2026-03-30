@@ -1,0 +1,6 @@
+interface:
+  display_name: "Self Review"
+  short_description: "Validate implementation results before claiming completion"
+
+policy:
+  allow_implicit_invocation: true

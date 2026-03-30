@@ -8,7 +8,7 @@
     {
       "name": "ai-quality-guardrails",
       "description": "Quality guardrails for AI-assisted development: TDD enforcement, iterative review loops, AI code scrutiny, spec-driven planning, and self-review patterns.",
-      "version": "0.1.15",
+      "version": "0.1.16",
       "source": "./plugins/ai-quality-guardrails",
       "category": "development",
       "keywords": ["quality", "tdd", "code-review", "ai-safety", "spec-driven", "guardrails"]
@@ -16,7 +16,7 @@
     {
       "name": "claude-utils",
       "description": "Essential utilities for Claude Code — cross-platform notifications, orphaned process cleanup, and git context injection",
-      "version": "1.0.12",
+      "version": "1.0.13",
       "source": "./plugins/claude-utils",
       "category": "development",
       "keywords": ["utilities", "notifications", "cleanup", "git-context", "session-management"]
@@ -40,7 +40,7 @@
     {
       "name": "router-plugin",
       "description": "Protocol pack — certify and scaffold router contracts for inter-agent communication",
-      "version": "1.0.7",
+      "version": "1.0.8",
       "source": "./plugins/router-plugin",
       "category": "development",
       "keywords": ["router", "protocol", "certification", "scaffold", "inter-agent"]

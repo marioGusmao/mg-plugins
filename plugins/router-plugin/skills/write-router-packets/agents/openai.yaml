@@ -1,0 +1,6 @@
+interface:
+  display_name: "Write Router Packets"
+  short_description: "Author protocol-valid router packets for inbox and outbox delivery"
+
+policy:
+  allow_implicit_invocation: true

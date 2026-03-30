@@ -1,0 +1,6 @@
+interface:
+  display_name: "TDD Enforcement"
+  short_description: "Drive red-green-refactor expectations through planning, implementation, and review"
+
+policy:
+  allow_implicit_invocation: true

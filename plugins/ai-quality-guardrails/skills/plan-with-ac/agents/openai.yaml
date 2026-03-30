@@ -1,0 +1,6 @@
+interface:
+  display_name: "Plan With AC"
+  short_description: "Create execution plans with explicit acceptance criteria and verification"
+
+policy:
+  allow_implicit_invocation: true

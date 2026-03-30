@@ -1,0 +1,6 @@
+interface:
+  display_name: "Review Loop"
+  short_description: "Apply severity thresholds and mandatory re-review rules after findings"
+
+policy:
+  allow_implicit_invocation: true
