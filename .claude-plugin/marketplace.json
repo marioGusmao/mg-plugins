@@ -16,7 +16,7 @@
     {
       "name": "claude-utils",
       "description": "Essential utilities for Claude Code — cross-platform notifications, orphaned process cleanup, and git context injection",
-      "version": "1.0.13",
+      "version": "1.0.14",
       "source": "./plugins/claude-utils",
       "category": "development",
       "keywords": ["utilities", "notifications", "cleanup", "git-context", "session-management"]

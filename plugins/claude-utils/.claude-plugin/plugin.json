@@ -1,6 +1,6 @@
 {
   "name": "claude-utils",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "Essential utilities for Claude Code — cross-platform notifications, orphaned process cleanup, and git context injection",
   "author": {
     "name": "Mário Silva Gusmão"

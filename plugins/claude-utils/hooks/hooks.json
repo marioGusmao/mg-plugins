@@ -35,6 +35,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/daemon-health.sh\"",
+            "timeout": 15000
+          },
+          {
+            "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/tmux-rename.sh\"",
             "timeout": 3000
           },
