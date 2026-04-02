@@ -310,6 +310,22 @@ main() {
     LIMIT 1;
   ")"
 
+  # Capability summary from truth-engine (if tables exist)
+  local capability_summary_json capability_summary_body
+  capability_summary_json="$(run_query "$repo_id" "$branch" "$session_id" "
+    SELECT capability_id, display_name, status, confidence, policy
+    FROM capabilities
+    ORDER BY confidence DESC, display_name ASC
+    LIMIT 20;
+  " 2>/dev/null)" || capability_summary_json="[]"
+  capability_summary_body="$(jq -r '
+    if (. | length) == 0 then ""
+    else
+      map("- \(.capability_id) — \(.status), confidence \(.confidence)" + (if .policy != "allow" then ", policy: \(.policy)" else "" end))
+      | join("\n")
+    end
+  ' <<<"$capability_summary_json" 2>/dev/null || true)"
+
   local pending_body accomplished_body failed_body decisions_body concurrent_body recent_prompts_body pending_actions_body open_flags_body unread_cross_workshop_body warnings_body work_stream_body knowledge_health_body knowledge_health_summary reconcile_health_count
   pending_body="$(jq -r '
     map("- " + ((.category // "task") + ": " + .description + (if (.file_pattern // "") != "" then " (" + .file_pattern + ")" else "" end)))
@@ -393,12 +409,13 @@ main() {
       )"
   fi
 
-  if [[ -z "$work_stream_body$knowledge_health_body$pending_body$accomplished_body$failed_body$decisions_body$concurrent_body$recent_prompts_body$pending_actions_body$open_flags_body$unread_cross_workshop_body$warnings_body" ]]; then
+  if [[ -z "$work_stream_body$knowledge_health_body$capability_summary_body$pending_body$accomplished_body$failed_body$decisions_body$concurrent_body$recent_prompts_body$pending_actions_body$open_flags_body$unread_cross_workshop_body$warnings_body" ]]; then
     return
   fi
 
   render_section "Warnings" "$warnings_body"
   render_section "Work Stream" "$work_stream_body"
+  render_section "Capability Truth Engine" "$capability_summary_body"
   render_section "Knowledge Health" "$knowledge_health_body"
   render_section "Pending Work Items" "$pending_body"
   render_section "Recent Accomplishments" "$accomplished_body"

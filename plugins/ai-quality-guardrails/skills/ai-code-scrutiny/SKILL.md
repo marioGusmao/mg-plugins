@@ -86,6 +86,16 @@ When reviewing code:
 3. Pay special attention to sections 2 and 3 — highest real-world impact
 4. Cross-reference with test coverage — untested code gets extra scrutiny
 
+## Capability Warrant Compliance
+
+When a **capability warrant block** is present in the session context:
+
+- [ ] **Unwarranted capability usage**: Check if the code uses capabilities (tools, APIs, features) that are NOT listed in the warrant items. Flag as `[HIGH]` if a capability was relied upon without warrant coverage.
+- [ ] **Stale warrant items**: If any warrant item has `verification_state: stale`, flag usage of that capability as `[MEDIUM]` — the capability may not be reliably available.
+- [ ] **Policy violations**: If a warrant item has `policy: prohibit` or `policy: discourage`, flag any usage as `[CRITICAL]` or `[HIGH]` respectively.
+
+When **no warrant block** is present: use existing heuristic checks unchanged.
+
 ## Related Skills
 
 - `self-review-before-done` — uses this checklist as fallback when no validation commands exist

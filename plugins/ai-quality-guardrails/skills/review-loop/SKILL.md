@@ -120,6 +120,20 @@ When reaching 3 iterations without resolution:
    c. Reduce scope to eliminate problematic area
 3. Document decision in review artifact
 
+## Capability Warrant Compliance
+
+When a **capability warrant block** is present in the session context, add these finding categories to the review:
+
+| Finding | Severity | Condition |
+|---------|----------|-----------|
+| **Warrant violation** | HIGH (blocking) | Agent relied on a capability not covered by its warrant, or used a capability whose warrant item has `verification_state: stale` for a `required` operation |
+| **Warrant policy breach** | CRITICAL (blocking) | Agent used a capability with `policy: prohibit` in the warrant |
+| **Warrant degradation** | MEDIUM | Agent used a capability with `verification_state: declared` for a core operation without noting the fallback |
+
+Warrant violations count toward the quality gate threshold alongside other findings.
+
+When **no warrant block** is present: use existing behavior unchanged.
+
 ## Related Skills
 
 - `parallel-review` — calls this skill's quality gate after aggregating parallel findings

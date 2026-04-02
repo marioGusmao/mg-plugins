@@ -96,6 +96,17 @@ When adding tests to existing untested code (not new development):
 - Before modifying any specific line of existing code, write a test that covers that line's current behavior first. You are not required to write tests for all untested existing code — only for the code you are about to change
 - A task is brownfield when modifying existing code that has zero test coverage for the affected area
 
+## Capability Warrant Compliance
+
+When a **capability warrant block** is present in the session context:
+
+1. Check if any `workshop.tdd.*` capabilities appear in the warrant items
+2. If a TDD capability has `verification_state: certified` or `reachable` — the test framework is confirmed available; proceed with TDD
+3. If a TDD capability has `verification_state: declared` or `stale` — warn that the test runner may not be available; attempt TDD but accept graceful degradation
+4. If no TDD capability appears in the warrant — fall back to standard behavior (detect test runner from project structure)
+
+When **no warrant block** is present: use existing behavior unchanged.
+
 ## Related Skills
 
 - `plan-with-ac` — upstream: defines test scenarios in section 7a that become RED phase targets

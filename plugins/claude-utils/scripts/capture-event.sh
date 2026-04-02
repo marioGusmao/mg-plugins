@@ -8,6 +8,8 @@ readonly CLAUDE_TOOL="claude"
 readonly SPOOL_DIR="${AI_SESSIONS_SPOOL_DIR:-${HOME}/.ai-sessions/spool}"
 readonly SPOOL_FILE="${SPOOL_DIR}/events.jsonl"
 readonly CONTINUITY_SCRIPT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}/scripts/build-continuity-packet.sh"
+readonly CAPABILITY_TOOL_MAP_PATH="${HOME}/.ai-sessions/capability-tool-map.json"
+readonly CAPABILITY_TOOL_MAP_MAX_AGE_SECONDS=86400
 _SELF_REPORT_SESSION_ID=""
 _SELF_REPORT_REPO_ID=""
 _SELF_REPORT_BRANCH=""
@@ -230,6 +232,89 @@ build_tool_input_summary() {
   printf '%s\n' "$summary"
 }
 
+map_file_mtime() {
+  local file_path="$1"
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    stat -f '%m' "$file_path" 2>/dev/null || return 1
+  else
+    stat -c '%Y' "$file_path" 2>/dev/null || return 1
+  fi
+}
+
+capability_map_is_fresh() {
+  [[ -f "$CAPABILITY_TOOL_MAP_PATH" ]] || return 1
+  local modified_at now
+  modified_at="$(map_file_mtime "$CAPABILITY_TOOL_MAP_PATH")" || return 1
+  now="$(date +%s 2>/dev/null || printf '0')"
+  [[ "$modified_at" =~ ^[0-9]+$ && "$now" =~ ^[0-9]+$ ]] || return 1
+  (( now - modified_at <= CAPABILITY_TOOL_MAP_MAX_AGE_SECONDS ))
+}
+
+lookup_capability_mapping() {
+  local tool_type="$1"
+  local tool_name="$2"
+  capability_map_is_fresh || return 1
+
+  local lookup_name capability_id
+  case "$tool_type" in
+    mcp_tool)
+      # Try full qualified name first (plugin-aware), then fall back to bare name
+      lookup_name="${tool_name##*__}"
+      ;;
+    skill|agent)
+      lookup_name="$tool_name"
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+
+  [[ -n "$lookup_name" ]] || return 1
+
+  # Try bare tool name first; if collision, try with plugin prefix
+  capability_id="$(jq -r --arg tool_type "$tool_type" --arg tool_name "$lookup_name" '.[$tool_type][$tool_name] // empty' "$CAPABILITY_TOOL_MAP_PATH" 2>/dev/null || true)"
+
+  # If bare name didn't match but original has plugin prefix, try the full MCP name
+  if [[ -z "$capability_id" && "$tool_type" == "mcp_tool" && "$tool_name" == *"__"* ]]; then
+    capability_id="$(jq -r --arg tool_type "$tool_type" --arg tool_name "$tool_name" '.[$tool_type][$tool_name] // empty' "$CAPABILITY_TOOL_MAP_PATH" 2>/dev/null || true)"
+  fi
+
+  [[ -n "$capability_id" ]] || return 1
+
+  printf '%s\t%s\t%s\n' "$capability_id" "$tool_type" "$lookup_name"
+}
+
+emit_capability_observed_event() {
+  local capability_id="$1"
+  local tool_name="$2"
+  local tool_type="$3"
+  local outcome="$4"
+  local session_id="$5"
+  local repo_id="$6"
+  local branch="$7"
+
+  local event_data
+  event_data="$(
+    jq -nc \
+      --arg capability_id "$capability_id" \
+      --arg tool_name "$tool_name" \
+      --arg tool_type "$tool_type" \
+      --arg outcome "$outcome" \
+      --arg session_id "$session_id" \
+      --arg repo_id "$repo_id" '
+      {
+        capability_id: $capability_id,
+        tool_name: $tool_name,
+        tool_type: $tool_type,
+        outcome: $outcome,
+        session_id: (if $session_id == "" then null else $session_id end),
+        repo_id: (if $repo_id == "" then null else $repo_id end)
+      }
+    '
+  )"
+  write_spool "capability.observed" "$event_data" "$session_id" "$repo_id" "$branch" "hook:capture-event"
+}
+
 emit_config_event() {
   local absolute_path="$1"
   local session_id="$2"
@@ -406,7 +491,7 @@ main() {
       write_spool "prompt" "$event_data" "$session_id" "$repo_id" "$branch" "hook:UserPromptSubmit"
       ;;
     observation)
-      local tool_name file_path success tool_input_summary title detail files_json event_data
+      local tool_name file_path success exit_code tool_input_summary title detail files_json event_data
       tool_name="$(jq -r '.tool_name // .toolName // .tool // empty' <<<"$payload" 2>/dev/null || true)"
       [[ -n "$tool_name" ]] || return
       [[ "$tool_name" != "Skill" ]] || return
@@ -426,9 +511,18 @@ main() {
         else "true"
         end
       ' <<<"$payload" 2>/dev/null || printf 'true')"
+      exit_code="$(jq -r 'if (.exit_code // .exitCode) == null then "" else (.exit_code // .exitCode | tostring) end' <<<"$payload" 2>/dev/null || true)"
       tool_input_summary="$(build_tool_input_summary "$payload")"
       title="$tool_name"
       detail="$(jq -r '.detail // .error // empty' <<<"$payload" 2>/dev/null || true)"
+      local mapped_capability outcome mapped_capability_id mapped_tool_type mapped_tool_name
+      mapped_capability="$(lookup_capability_mapping "mcp_tool" "$tool_name")" || mapped_capability=""
+      if [[ "$success" == "true" || "$exit_code" == "0" ]]; then
+        outcome="success"
+      else
+        outcome="failure"
+      fi
+
       event_data="$(
         jq -nc \
           --arg type "tool_use" \
@@ -451,6 +545,11 @@ main() {
           }
         '
       )"
+
+      if [[ -n "$mapped_capability" ]]; then
+        IFS=$'\t' read -r mapped_capability_id mapped_tool_type mapped_tool_name <<<"$mapped_capability"
+        emit_capability_observed_event "$mapped_capability_id" "$mapped_tool_name" "$mapped_tool_type" "$outcome" "$session_id" "$repo_id" "$branch"
+      fi
       write_spool "observation" "$event_data" "$session_id" "$repo_id" "$branch" "hook:PostToolUse"
       # Plan auto-complete: emit plan.item.complete if a file was modified (Edit/Write)
       if [[ -n "$file_path" && ("$tool_name" == "Edit" || "$tool_name" == "Write" || "$tool_name" == "edit" || "$tool_name" == "write") ]]; then
@@ -460,28 +559,49 @@ main() {
       fi
       ;;
     skill.invoke)
-      local skill_name plugin arguments_json event_data
+      local skill_name plugin plugin_version arguments_json event_data mapped_capability mapped_capability_id mapped_tool_type mapped_tool_name outcome
       skill_name="$(jq -r '.tool_input.skill // .toolInput.skill // .tool_input.name // .toolInput.name // empty' <<<"$payload" 2>/dev/null || true)"
       [[ -n "$skill_name" ]] || return
+      # Extract plugin from payload or derive from colon-separated skill name (e.g. "workshop:dashboard" → "workshop")
       plugin="$(jq -r '.tool_input.plugin // .toolInput.plugin // empty' <<<"$payload" 2>/dev/null || true)"
+      if [[ -z "$plugin" && "$skill_name" == *":"* ]]; then
+        plugin="${skill_name%%:*}"
+      fi
+      plugin_version="$(jq -r '.tool_input.plugin_version // .toolInput.pluginVersion // .tool_input.pluginVersion // empty' <<<"$payload" 2>/dev/null || true)"
       arguments_json="$(jq -c '.tool_input.arguments // .toolInput.arguments // .tool_input.args // .toolInput.args // {}' <<<"$payload" 2>/dev/null || printf '{}')"
+      mapped_capability="$(lookup_capability_mapping "skill" "$skill_name")" || mapped_capability=""
+      if jq -e '.success == false or .isError == true or (.error? != null and .error != "")' >/dev/null 2>&1 <<<"$payload"; then
+        outcome="failure"
+      else
+        outcome="success"
+      fi
       event_data="$(
         jq -nc \
           --arg skill_name "$skill_name" \
           --arg plugin "$plugin" \
+          --arg plugin_version "$plugin_version" \
           --argjson arguments "$arguments_json" '
           {
             skill_name: $skill_name,
             plugin: (if $plugin == "" then null else $plugin end),
+            plugin_version: (if $plugin_version == "" then null else $plugin_version end),
             arguments: $arguments
           }
         '
       )"
+      if [[ -n "$mapped_capability" ]]; then
+        IFS=$'\t' read -r mapped_capability_id mapped_tool_type mapped_tool_name <<<"$mapped_capability"
+        emit_capability_observed_event "$mapped_capability_id" "$mapped_tool_name" "$mapped_tool_type" "$outcome" "$session_id" "$repo_id" "$branch"
+      fi
       write_spool "skill.invoke" "$event_data" "$session_id" "$repo_id" "$branch" "hook:PostToolUse:Skill"
       ;;
     agent.stop)
-      local agent_name agent_type model plugin status error_message duration_ms tokens_in tokens_out event_data
-      agent_name="$(jq -r '.agent_name // .agentName // .name // empty' <<<"$payload" 2>/dev/null || true)"
+      local agent_name agent_type model plugin status error_message duration_ms tokens_in tokens_out event_data mapped_capability mapped_capability_id mapped_tool_type mapped_tool_name outcome
+      # SubagentStop hook payload provides: agent_type, agent_id, agent_transcript_path,
+      # last_assistant_message, stop_hook_active — but NOT model, duration_ms, or tokens.
+      # Try explicit payload fields first (for future-proofing and test compatibility),
+      # then fall back to parsing the agent transcript JSONL for model/duration/tokens.
+      agent_name="$(jq -r '.agent_name // .agentName // .name // .agent_type // .agentType // empty' <<<"$payload" 2>/dev/null || true)"
       [[ -n "$agent_name" ]] || return
       agent_type="$(jq -r '.agent_type // .agentType // empty' <<<"$payload" 2>/dev/null || true)"
       model="$(jq -r '.model // empty' <<<"$payload" 2>/dev/null || true)"
@@ -491,6 +611,79 @@ main() {
       duration_ms="$(jq -c '.duration_ms // .durationMs // null' <<<"$payload" 2>/dev/null || printf 'null')"
       tokens_in="$(jq -c '.tokens_in // .tokensIn // .usage.input_tokens // .usage.inputTokens // null' <<<"$payload" 2>/dev/null || printf 'null')"
       tokens_out="$(jq -c '.tokens_out // .tokensOut // .usage.output_tokens // .usage.outputTokens // null' <<<"$payload" 2>/dev/null || printf 'null')"
+
+      # Parse agent transcript for model, duration, tokens, and error if not already set.
+      # The transcript is a JSONL file; first line has the start timestamp, last assistant
+      # entry has model, usage, and stop_reason.
+      local transcript_path=""
+      transcript_path="$(jq -r '.agent_transcript_path // .agentTranscriptPath // empty' <<<"$payload" 2>/dev/null || true)"
+      if [[ -n "$transcript_path" && -f "$transcript_path" ]]; then
+        # Extract model from last assistant entry
+        if [[ -z "$model" ]]; then
+          model="$(tail -1 "$transcript_path" 2>/dev/null | jq -r '.message.model // empty' 2>/dev/null || true)"
+        fi
+        # Extract tokens from last assistant entry's usage
+        if [[ "$tokens_in" == "null" ]]; then
+          tokens_in="$(tail -1 "$transcript_path" 2>/dev/null | jq -c '.message.usage.input_tokens // null' 2>/dev/null || printf 'null')"
+        fi
+        if [[ "$tokens_out" == "null" ]]; then
+          tokens_out="$(tail -1 "$transcript_path" 2>/dev/null | jq -c '.message.usage.output_tokens // null' 2>/dev/null || printf 'null')"
+        fi
+        # Calculate duration from first and last entry timestamps
+        if [[ "$duration_ms" == "null" ]]; then
+          local ts_first ts_last
+          ts_first="$(head -1 "$transcript_path" 2>/dev/null | jq -r '.timestamp // empty' 2>/dev/null || true)"
+          ts_last="$(tail -1 "$transcript_path" 2>/dev/null | jq -r '.timestamp // empty' 2>/dev/null || true)"
+          if [[ -n "$ts_first" && -n "$ts_last" ]]; then
+            # Convert ISO timestamps to epoch milliseconds via python (portable)
+            duration_ms="$(python3 -c "
+from datetime import datetime, timezone
+try:
+    t1 = datetime.fromisoformat('$ts_first'.replace('Z','+00:00'))
+    t2 = datetime.fromisoformat('$ts_last'.replace('Z','+00:00'))
+    print(int((t2 - t1).total_seconds() * 1000))
+except Exception:
+    print('null')
+" 2>/dev/null || printf 'null')"
+          fi
+        fi
+        # Extract error from stop_reason if status indicates failure
+        if [[ -z "$error_message" ]]; then
+          local stop_reason=""
+          stop_reason="$(tail -1 "$transcript_path" 2>/dev/null | jq -r '.message.stop_reason // empty' 2>/dev/null || true)"
+          if [[ -n "$stop_reason" && "$stop_reason" != "end_turn" && "$stop_reason" != "stop_sequence" ]]; then
+            error_message="$stop_reason"
+            [[ "$status" == "completed" ]] && status="error"
+          fi
+        fi
+      fi
+
+      # Also try to read the .meta.json sidecar for agent type if not yet set
+      if [[ -z "$agent_type" && -n "$transcript_path" ]]; then
+        local meta_path="${transcript_path%.jsonl}.meta.json"
+        if [[ -f "$meta_path" ]]; then
+          agent_type="$(jq -r '.agentType // empty' <<<"$(cat "$meta_path" 2>/dev/null)" 2>/dev/null || true)"
+        fi
+      fi
+
+      # Derive status from last_assistant_message if available and status is still default
+      if [[ "$status" == "completed" ]]; then
+        local last_msg=""
+        last_msg="$(jq -r '.last_assistant_message // empty' <<<"$payload" 2>/dev/null || true)"
+        if [[ -n "$last_msg" && -z "$error_message" ]]; then
+          # Check if the message indicates an error
+          if printf '%s' "$last_msg" | grep -qiE '(error|failed|unable to|cannot|exception)' 2>/dev/null; then
+            : # Keep completed — many agents report errors they handled
+          fi
+        fi
+      fi
+
+      mapped_capability="$(lookup_capability_mapping "agent" "$agent_name")" || mapped_capability=""
+      if [[ "$status" == "completed" || "$status" == "success" ]] && [[ -z "$error_message" ]]; then
+        outcome="success"
+      else
+        outcome="failure"
+      fi
       event_data="$(
         jq -nc \
           --arg agent_name "$agent_name" \
@@ -499,9 +692,9 @@ main() {
           --arg plugin "$plugin" \
           --arg status "$status" \
           --arg error_message "$error_message" \
-          --argjson duration_ms "$duration_ms" \
-          --argjson tokens_in "$tokens_in" \
-          --argjson tokens_out "$tokens_out" '
+          --argjson duration_ms "${duration_ms:-null}" \
+          --argjson tokens_in "${tokens_in:-null}" \
+          --argjson tokens_out "${tokens_out:-null}" '
           {
             agent_name: $agent_name,
             agent_type: (if $agent_type == "" then null else $agent_type end),
@@ -515,6 +708,10 @@ main() {
           }
         '
       )"
+      if [[ -n "$mapped_capability" ]]; then
+        IFS=$'\t' read -r mapped_capability_id mapped_tool_type mapped_tool_name <<<"$mapped_capability"
+        emit_capability_observed_event "$mapped_capability_id" "$mapped_tool_name" "$mapped_tool_type" "$outcome" "$session_id" "$repo_id" "$branch"
+      fi
       write_spool "agent.stop" "$event_data" "$session_id" "$repo_id" "$branch" "hook:SubagentStop"
       ;;
     config.loaded)
