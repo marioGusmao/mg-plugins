@@ -39,45 +39,82 @@ def find_kdoc_config(start: Path) -> Path:
 
 def _parse_simple_yaml(text: str) -> dict:
     """Parse the subset of YAML used by .kdoc.yaml."""
-    result: dict = {}
-    stack = [(0, result)]
-
+    lines = []
     for raw_line in text.splitlines():
-        if not raw_line.strip() or raw_line.strip().startswith("#"):
+        stripped = raw_line.strip()
+        if not stripped or stripped.startswith("#"):
             continue
-
         indent = len(raw_line) - len(raw_line.lstrip())
-        line = raw_line.strip()
+        lines.append((indent, stripped))
 
-        while len(stack) > 1 and stack[-1][0] >= indent:
-            stack.pop()
+    def _parse_scalar(raw: str):
+        value = raw.strip().strip('"').strip("'")
+        lowered = value.lower()
+        if value in ("[]", "[ ]"):
+            return []
+        if value in ("{}", "{ }"):
+            return {}
+        if value.startswith("{") and value.endswith("}"):
+            inner = value[1:-1].strip()
+            if not inner:
+                return {}
+            result = {}
+            for entry in inner.split(","):
+                key, _, raw_item = entry.partition(":")
+                result[key.strip()] = _parse_scalar(raw_item)
+            return result
+        if lowered == "true":
+            return True
+        if lowered == "false":
+            return False
+        return value
 
-        current_dict = stack[-1][1]
+    def _parse_list(start: int, indent: int):
+        items = []
+        index = start
+        while index < len(lines):
+            line_indent, line = lines[index]
+            if line_indent < indent or line_indent != indent or not line.startswith("- "):
+                break
+            items.append(_parse_scalar(line[2:]))
+            index += 1
+        return items, index
 
-        if line.startswith("- "):
-            value = line[2:].strip().strip('"').strip("'")
-            if "_current_list_key" in current_dict:
-                key = current_dict["_current_list_key"]
-                current_dict.setdefault(key, []).append(value)
-            continue
+    def _parse_dict(start: int, indent: int):
+        data = {}
+        index = start
+        while index < len(lines):
+            line_indent, line = lines[index]
+            if line_indent < indent:
+                break
+            if line_indent != indent or line.startswith("- ") or ":" not in line:
+                break
 
-        if ":" in line:
-            key, _, value = line.partition(":")
+            key, _, raw_value = line.partition(":")
             key = key.strip()
-            value = value.strip().strip('"').strip("'")
-            if value == "":
-                nested: dict = {}
-                current_dict[key] = nested
-                current_dict["_current_list_key"] = key
-                stack.append((indent + 2, nested))
+            raw_value = raw_value.strip()
+
+            if raw_value:
+                data[key] = _parse_scalar(raw_value)
+                index += 1
+                continue
+
+            next_index = index + 1
+            if next_index >= len(lines) or lines[next_index][0] <= indent:
+                data[key] = {}
+                index += 1
+                continue
+
+            child_indent, child_line = lines[next_index]
+            if child_line.startswith("- "):
+                data[key], index = _parse_list(next_index, child_indent)
             else:
-                current_dict[key] = value
-                current_dict["_current_list_key"] = key
+                data[key], index = _parse_dict(next_index, child_indent)
 
-    def _clean(d: dict) -> dict:
-        return {k: (_clean(v) if isinstance(v, dict) else v) for k, v in d.items() if k != "_current_list_key"}
+        return data, index
 
-    return _clean(result)
+    parsed, _ = _parse_dict(0, 0)
+    return parsed
 
 
 def load_kdoc_config(config_path: Path) -> dict:
@@ -121,8 +158,8 @@ CHECKS: List[Dict] = [
         "name": "index-build",
         "config_key": "index-build",
         "script": SCRIPT_DIR / "build_index.py",
-        "description": "Rebuild INDEX.md",
-        "args": [],
+        "description": "Check INDEX.md",
+        "args": ["--check"],
     },
     {
         "name": "adr-governance",

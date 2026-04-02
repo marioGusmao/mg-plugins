@@ -42,45 +42,82 @@ def find_kdoc_config(start: Path) -> Path:
 
 def _parse_simple_yaml(text: str) -> dict:
     """Parse the subset of YAML used by .kdoc.yaml."""
-    result: dict = {}
-    stack = [(0, result)]
-
+    lines = []
     for raw_line in text.splitlines():
-        if not raw_line.strip() or raw_line.strip().startswith("#"):
+        stripped = raw_line.strip()
+        if not stripped or stripped.startswith("#"):
             continue
-
         indent = len(raw_line) - len(raw_line.lstrip())
-        line = raw_line.strip()
+        lines.append((indent, stripped))
 
-        while len(stack) > 1 and stack[-1][0] >= indent:
-            stack.pop()
+    def _parse_scalar(raw: str):
+        value = raw.strip().strip('"').strip("'")
+        lowered = value.lower()
+        if value in ("[]", "[ ]"):
+            return []
+        if value in ("{}", "{ }"):
+            return {}
+        if value.startswith("{") and value.endswith("}"):
+            inner = value[1:-1].strip()
+            if not inner:
+                return {}
+            result = {}
+            for entry in inner.split(","):
+                key, _, raw_item = entry.partition(":")
+                result[key.strip()] = _parse_scalar(raw_item)
+            return result
+        if lowered == "true":
+            return True
+        if lowered == "false":
+            return False
+        return value
 
-        current_dict = stack[-1][1]
+    def _parse_list(start: int, indent: int):
+        items = []
+        index = start
+        while index < len(lines):
+            line_indent, line = lines[index]
+            if line_indent < indent or line_indent != indent or not line.startswith("- "):
+                break
+            items.append(_parse_scalar(line[2:]))
+            index += 1
+        return items, index
 
-        if line.startswith("- "):
-            value = line[2:].strip().strip('"').strip("'")
-            if "_current_list_key" in current_dict:
-                key = current_dict["_current_list_key"]
-                current_dict.setdefault(key, []).append(value)
-            continue
+    def _parse_dict(start: int, indent: int):
+        data = {}
+        index = start
+        while index < len(lines):
+            line_indent, line = lines[index]
+            if line_indent < indent:
+                break
+            if line_indent != indent or line.startswith("- ") or ":" not in line:
+                break
 
-        if ":" in line:
-            key, _, value = line.partition(":")
+            key, _, raw_value = line.partition(":")
             key = key.strip()
-            value = value.strip().strip('"').strip("'")
-            if value == "":
-                nested: dict = {}
-                current_dict[key] = nested
-                current_dict["_current_list_key"] = key
-                stack.append((indent + 2, nested))
+            raw_value = raw_value.strip()
+
+            if raw_value:
+                data[key] = _parse_scalar(raw_value)
+                index += 1
+                continue
+
+            next_index = index + 1
+            if next_index >= len(lines) or lines[next_index][0] <= indent:
+                data[key] = {}
+                index += 1
+                continue
+
+            child_indent, child_line = lines[next_index]
+            if child_line.startswith("- "):
+                data[key], index = _parse_list(next_index, child_indent)
             else:
-                current_dict[key] = value
-                current_dict["_current_list_key"] = key
+                data[key], index = _parse_dict(next_index, child_indent)
 
-    def _clean(d: dict) -> dict:
-        return {k: (_clean(v) if isinstance(v, dict) else v) for k, v in d.items() if k != "_current_list_key"}
+        return data, index
 
-    return _clean(result)
+    parsed, _ = _parse_dict(0, 0)
+    return parsed
 
 
 def load_kdoc_config(config_path: Path) -> dict:
@@ -116,6 +153,7 @@ WIKILINK_RE = re.compile(r"\[\[([^\]]+)\]\]")
 MARKDOWN_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 WINDOWS_ABSOLUTE_RE = re.compile(r"^[A-Za-z]:[\\/]")
 LOCAL_ABSOLUTE_PREFIXES = ("file://", "/Users/", "/home/", "/private/", "/var/", "/tmp/")
+FENCE_RE = re.compile(r"^\s*(```+|~~~+)")
 
 
 def suggest_similar(target_path: Path, *, max_results: int = 3, cutoff: float = 0.6) -> list:
@@ -181,6 +219,33 @@ def is_local_absolute_markdown_link(raw_target: str) -> bool:
     return target.startswith(LOCAL_ABSOLUTE_PREFIXES)
 
 
+def strip_inline_code_spans(line: str) -> str:
+    """Remove markdown inline code spans so wikilinks inside code are ignored."""
+    result = []
+    i = 0
+    length = len(line)
+
+    while i < length:
+        if line[i] != "`":
+            result.append(line[i])
+            i += 1
+            continue
+
+        tick_count = 1
+        while i + tick_count < length and line[i + tick_count] == "`":
+            tick_count += 1
+
+        closing = line.find("`" * tick_count, i + tick_count)
+        if closing == -1:
+            # Unclosed span: treat remaining text literally.
+            result.append(line[i:])
+            break
+
+        i = closing + tick_count
+
+    return "".join(result)
+
+
 def main() -> int:
     try:
         config_path = find_kdoc_config(Path.cwd())
@@ -212,9 +277,32 @@ def main() -> int:
 
     for file_path in scanned_files:
         lines = file_path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        in_fenced_code = False
+        active_fence: Optional[str] = None
+        active_fence_len: int = 0
 
         for line_number, line in enumerate(lines, start=1):
-            for match in WIKILINK_RE.finditer(line):
+            fence_match = FENCE_RE.match(line)
+            if fence_match:
+                fence = fence_match.group(1)
+                fence_char = fence[0]
+                fence_len = len(fence)
+                if in_fenced_code and active_fence and fence_char == active_fence and fence_len >= active_fence_len:
+                    in_fenced_code = False
+                    active_fence = None
+                    active_fence_len = 0
+                elif not in_fenced_code:
+                    in_fenced_code = True
+                    active_fence = fence_char
+                    active_fence_len = fence_len
+                continue
+
+            if in_fenced_code:
+                continue
+
+            line_without_code = strip_inline_code_spans(line)
+
+            for match in WIKILINK_RE.finditer(line_without_code):
                 raw = match.group(1)
                 target_path = normalize_target(raw, file_path, knowledge_dir)
                 if target_path is None:
@@ -229,7 +317,7 @@ def main() -> int:
                         msg += f" — did you mean: {', '.join(suggestions)}?"
                     missing.append(msg)
 
-            for match in MARKDOWN_LINK_RE.finditer(line):
+            for match in MARKDOWN_LINK_RE.finditer(line_without_code):
                 raw_target = match.group(1)
                 if is_local_absolute_markdown_link(raw_target):
                     absolute_links.append(
