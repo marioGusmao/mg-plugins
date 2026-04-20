@@ -1,6 +1,6 @@
 {
   "name": "kdoc",
-  "version": "1.0.11",
+  "version": "1.0.38",
   "private": true,
   "description": "Knowledge documentation toolkit — scaffold, maintain, and govern project documentation structures",
   "type": "module",

@@ -6,7 +6,10 @@ export function registerMcpCmd(program) {
         .description('Start the CodeGraph MCP stdio server')
         .option('--project <dir>', 'Project root directory', process.cwd())
         .action(async (options) => {
-        const projectRoot = path.resolve(options.project);
+        // Guard: if --project is empty or whitespace (e.g. ${CLAUDE_PROJECT_DIR}
+        // substitution failed), fall back to cwd.
+        const effectiveProject = options.project?.trim() || process.cwd();
+        const projectRoot = path.resolve(effectiveProject);
         try {
             await startServer(projectRoot);
         }

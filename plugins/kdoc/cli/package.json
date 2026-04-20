@@ -1,6 +1,6 @@
 {
   "name": "kdoc-cli",
-  "version": "1.0.11",
+  "version": "1.0.22",
   "description": "kdoc CLI — scaffold and maintain Knowledge documentation",
   "type": "module",
   "bin": {

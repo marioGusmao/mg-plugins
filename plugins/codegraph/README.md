@@ -93,30 +93,43 @@ claude plugin add https://github.com/marioGusmao/codegraph
 
 Everything is automatic — skills, hooks, and MCP server are registered by the plugin system.
 
-### Codex CLI / Cursor / Windsurf
+### Codex CLI
 
 ```bash
 # Install globally
 npm install -g codegraph
 
-# Configure for your AI tool
-codegraph setup --codex     # Creates .mcp.json + AGENTS.md section
+# Register the MCP server with Codex
+codex mcp add codegraph -- npx codegraph mcp
+
+# Verify registration
+codex mcp list          # or type /mcp in a Codex session
+```
+
+For MCP clients that still read project JSON config, `codegraph setup --codex` writes a `.mcp.json` compatibility file and an `AGENTS.md` section in the target project. Codex CLI users should still register the MCP server explicitly with `codex mcp add`.
+
+### Cursor / Windsurf
+
+```bash
+npm install -g codegraph
+
 codegraph setup --cursor    # Creates .cursor/mcp.json
 codegraph setup --windsurf  # Creates .windsurf/mcp.json
 codegraph setup --all       # Auto-detects installed tools
 ```
 
-If you are working from the `plugins-develop` monorepo, use the repo root as the source of truth for the skill layer:
+### From `plugins-develop` monorepo
+
+If you are working from the `plugins-develop` monorepo, build and install the runtime from source:
 
 ```bash
-# From plugins-develop/, build/install the runtime from packages/codegraph
 cd packages/codegraph
 npm install
 npm run build
 npm install -g .
 ```
 
-Then run `codegraph setup --codex` in each target repository where you want the MCP wiring. Note: the current repo-native Codex sync skips `codegraph/skills/codegraph` because that skill does not yet ship an `agents/openai.yaml` marker.
+Then register with Codex (`codex mcp add codegraph -- npx codegraph mcp`) or other tools (`codegraph setup --cursor`, etc.) in each target repository.
 
 ### From source (development)
 
@@ -187,7 +200,9 @@ codegraph query callers add --json
 
 All tools return **dual output**: Markdown (human-readable) + `structuredContent` (JSON for programmatic use).
 
-### Automated Hooks
+### Automated Hooks (Claude Code plugin only)
+
+These hooks run automatically when CodeGraph is installed as a Claude Code plugin. They are not available in Codex CLI or other platforms — see the skill documentation for manual fallback steps.
 
 | Hook | Trigger | What it does |
 |------|---------|-------------|
@@ -235,6 +250,7 @@ Each project has its own `.codegraph/`. The plugin is installed once globally; i
 ```
 codegraph/
 ├── .claude-plugin/plugin.json    # Claude Code plugin manifest
+├── .codex-plugin/plugin.json     # Codex source/reference manifest
 ├── skills/codegraph/SKILL.md     # AI agent skill (when/how to use tools)
 ├── hooks/
 │   ├── hooks.json                # Hook registration
@@ -269,6 +285,8 @@ codegraph/
 │   └── implementation-plan.md    # 12-task implementation plan
 └── package.json
 ```
+
+`scripts/sync-to-codex-marketplace.sh` currently generates the marketplace `.codex-plugin/plugin.json` from `.claude-plugin/plugin.json` and copies Codex-ready skills marked with `agents/openai.yaml`. The source `.codex-plugin/plugin.json` in this package is kept as a reference manifest for local review and future sync parity.
 
 ## Tech Stack
 

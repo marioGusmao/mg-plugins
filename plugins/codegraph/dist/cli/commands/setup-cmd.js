@@ -5,7 +5,7 @@ export function registerSetupCmd(program) {
         .command('setup')
         .description('Configure CodeGraph for AI tools (Codex CLI, Cursor, Windsurf)')
         .option('--project <dir>', 'Project directory', process.cwd())
-        .option('--codex', 'Configure for Codex CLI (.mcp.json + AGENTS.md)')
+        .option('--codex', 'Configure Codex CLI guidance (.mcp.json compatibility + AGENTS.md)')
         .option('--cursor', 'Configure for Cursor (.cursor/mcp.json)')
         .option('--windsurf', 'Configure for Windsurf (.windsurf/mcp.json)')
         .option('--all', 'Configure for all detected tools')
@@ -59,8 +59,9 @@ export function registerSetupCmd(program) {
     });
 }
 function setupCodex(projectDir) {
-    // 1. Write .mcp.json
+    // 1. Write .mcp.json for MCP clients that still read project JSON config.
     setupMcpConfig(projectDir, '.mcp.json');
+    printCodexMcpInstructions();
     // 2. Append CodeGraph section to AGENTS.md
     const agentsPath = path.join(projectDir, 'AGENTS.md');
     const marker = '<!-- codegraph-start -->';
@@ -76,6 +77,24 @@ Before refactoring, renaming, or changing function signatures, use the CodeGraph
 - \`codegraph_depends\` — file-level dependency tree (in/out/both)
 - \`codegraph_search\` — find symbols by name substring
 - \`codegraph_status\` — index health and stale file count
+
+### Codex MCP registration
+The \`.mcp.json\` file is written as a compatibility config for MCP clients that read project JSON config.
+For Codex CLI, register CodeGraph explicitly:
+
+\`\`\`bash
+codex mcp add codegraph -- npx codegraph mcp
+codex mcp list
+\`\`\`
+
+You can also verify the server from inside Codex with \`/mcp\`.
+
+### Manual fallback for Codex CLI
+Claude Code plugin hooks can check status, warn before edits, and reindex after changes automatically. Codex CLI users should run these steps manually unless Codex hooks are separately configured and verified:
+
+- At session start: run \`codegraph_status\`, or \`codegraph status --project .\` if MCP is unavailable.
+- Before risky refactors: run \`codegraph_blast\` or \`codegraph_callers\`.
+- After edits, git operations, or dependency installs: run \`codegraph index --incremental\`.
 
 ### Disambiguation
 When multiple symbols share a name, provide \`file\` or \`qualified_name\` (e.g., \`Foo.render\`) to disambiguate.
@@ -98,6 +117,13 @@ Run \`codegraph index --incremental\` after pulling changes or making edits. Tak
         fs.writeFileSync(agentsPath, `# Agent Instructions\n${section}`);
         console.log('  AGENTS.md — created with CodeGraph section');
     }
+}
+function printCodexMcpInstructions() {
+    console.log('  Codex CLI MCP registration required:');
+    console.log('    codex mcp add codegraph -- npx codegraph mcp');
+    console.log('  Verify registration:');
+    console.log('    codex mcp list');
+    console.log('  Inside Codex, use /mcp to confirm the server is available.');
 }
 function setupMcpConfig(projectDir, relPath) {
     const configPath = path.join(projectDir, relPath);

@@ -8,7 +8,7 @@ description: Use when about to refactor, rename, or change function signatures �
 - **Node.js** >= 20
 - **C++ toolchain**: Required for native Tree-sitter bindings (`npm install` compiles them)
 - **CodeGraph CLI**: Build with `cd <plugin-dir> && npm install && npm run build`
-- **MCP server**: Registered in `.claude/.mcp.json` or via `codegraph setup --claude`
+- **MCP server**: Registered automatically by the Claude Code plugin system; for Codex CLI use `codex mcp add codegraph -- npx codegraph mcp`; for MCP clients that read project JSON config use `codegraph setup --codex`, `--cursor`, `--windsurf`, or `--all`
 - **Project indexed**: Run `codegraph index --project <root>` (creates `.codegraph/graph.db`)
 
 # CodeGraph — Code Intelligence Skill
@@ -32,9 +32,15 @@ If this is the first time using CodeGraph on a project:
    This takes 1-5 seconds. Creates `.codegraph/` (auto-added to `.gitignore`).
    Also indexes `.md`/`.mdx` files — documentation that references code symbols gets linked in the graph.
 
-3. **For Codex CLI / Cursor / Windsurf** (not Claude Code):
+3. **For Codex CLI** (preferred):
    ```bash
-   codegraph setup --codex     # or --cursor, --windsurf, --all
+   codex mcp add codegraph -- npx codegraph mcp
+   ```
+   Verify with `codex mcp list` or type `/mcp` in a Codex session.
+
+4. **For Cursor / Windsurf** (not Claude Code):
+   ```bash
+   codegraph setup --cursor    # or --windsurf, --all
    ```
 
 ## When to Use
@@ -64,7 +70,7 @@ CodeGraph indexes `.md` and `.mdx` files alongside code. When a doc file referen
 
 This means:
 - `codegraph_blast` shows **which docs reference** the symbol you're changing
-- The blast radius gate hook warns about affected docs before edits
+- The Claude Code blast radius gate hook warns about affected docs before edits; on Codex CLI, run `codegraph_blast` manually
 - You know which documentation needs updating after code changes
 
 Example blast radius output:
@@ -97,9 +103,11 @@ Priority: `symbol_uid` > `qualified_name + file` > `symbol + file` > `symbol`
 6. **Proceed with edit**: Now you know what will be affected — make changes confidently
 7. **Update docs**: If blast radius showed doc references, update those docs too
 
-## Automatic Safety Hooks
+## Platform-Specific Behavior
 
-These run automatically — no manual action needed:
+### Claude Code Plugin (automatic hooks)
+
+When installed as a Claude Code plugin, these hooks run automatically — no manual action needed:
 
 | Hook | Trigger | What happens |
 |------|---------|-------------|
@@ -108,6 +116,15 @@ These run automatically — no manual action needed:
 | **PreToolUse (Bash)** | `git pull/merge/rebase/checkout/switch/reset/restore/cherry-pick`, `stash pop/apply`, `npm/pnpm/yarn install` | Suggests incremental re-index |
 | **PostToolUse (Edit/Write)** | After file edit | Warns if edited file is stale in the index |
 | **PostToolUse (Bash)** | `git pull/merge/rebase/checkout/switch/reset/restore/cherry-pick`, `stash pop/apply`, `npm/pnpm/yarn install` | Triggers incremental re-index automatically |
+
+### Codex CLI / Other Platforms (manual fallback)
+
+Codex CLI does not run Claude Code hooks. Replicate the safety net manually:
+
+1. **Start of session**: Call `codegraph_status` to verify MCP connectivity and check index freshness. If MCP is unavailable, fall back to `codegraph query status` via the CLI.
+2. **Before risky edits**: Call `codegraph_blast` or `codegraph_callers` on the symbol you are about to change. If MCP is unavailable, use `codegraph query blast <symbol>` or `codegraph query callers <symbol>`.
+3. **After edits or git operations**: Run `codegraph index --incremental` to keep the index current. This covers what the Claude Code PostToolUse hooks do automatically.
+4. **After dependency changes** (`npm install`, `pnpm install`, `yarn install`): Run `codegraph index` (full re-index) since config files may have changed.
 
 ## Rules
 
@@ -119,7 +136,7 @@ These run automatically — no manual action needed:
 
 ## Keeping the Index Fresh
 
-- **After edits**: PostToolUse hook warns automatically
+- **After edits**: Claude Code PostToolUse hooks warn automatically; on Codex CLI, run `codegraph index --incremental` manually
 - **Quick refresh**: `codegraph index --incremental` (<200ms for a few files)
 - **Full rebuild**: `codegraph reset` (deletes index and rebuilds from scratch)
 - **Config changes**: `tsconfig.json`, `package.json`, `pnpm-workspace.yaml` changes trigger full re-index automatically in incremental mode

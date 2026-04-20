@@ -45,7 +45,7 @@ import {
   writeConfig,
   writeKnowledgeJsonl,
   writeLock
-} from "./chunk-GVFDEDEZ.js";
+} from "./chunk-HTESMSFS.js";
 
 // src/index.ts
 import { Command as Command10 } from "commander";
@@ -2437,6 +2437,16 @@ function registerCreateCommand(program) {
         name: normalizedName,
         path: outputPath
       });
+      if (type === "phase" || type === "sub-phase") {
+        const phaseIdMatch = normalizedContent.match(/^id:\s*["']?(.+?)["']?\s*$/m);
+        engine.emitDaemonEvent("roadmap.phase_created", {
+          phase_id: phaseIdMatch?.[1] ?? null,
+          phase_type: type,
+          name: normalizedName,
+          path: outputPath,
+          parent_phase_id: type === "sub-phase" && opts.parent ? `phase-${opts.parent}` : null
+        });
+      }
     } catch {
     }
     try {
@@ -3056,7 +3066,7 @@ import { Command as Command8 } from "commander";
 function registerMcpCommand(program) {
   const cmd = new Command8("mcp");
   cmd.description("Start the kdoc MCP server (stdio transport)").option("--project <dir>", "Project directory (defaults to cwd)").action(async () => {
-    const { startServer, parseProjectDir } = await import("./server-FJGIFZNG.js");
+    const { startServer, parseProjectDir } = await import("./server-O4TRWPA2.js");
     const projectDir = parseProjectDir(process.argv, process.cwd());
     await startServer(projectDir);
   });
@@ -3086,7 +3096,10 @@ function groupByFile(items) {
   return new Map([...grouped.entries()].sort(([a], [b]) => a.localeCompare(b)));
 }
 function renderFindingLine(finding) {
-  const reason = finding.code === "BROKEN_WIKILINK" && finding.context.candidates.length !== 1 ? ` reason: ${finding.context.candidates.length === 0 ? "no deterministic target found" : `ambiguous candidates (${finding.context.candidates.join(", ")})`}` : "";
+  let reason = "";
+  if (finding.context.code === "BROKEN_WIKILINK" && finding.context.candidates.length !== 1) {
+    reason = ` reason: ${finding.context.candidates.length === 0 ? "no deterministic target found" : `ambiguous candidates (${finding.context.candidates.join(", ")})`}`;
+  }
   return `  - [${finding.code}] ${finding.message}${reason}`;
 }
 function formatFindingReport(findings) {

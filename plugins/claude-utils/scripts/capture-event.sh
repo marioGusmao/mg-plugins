@@ -485,7 +485,7 @@ main() {
       ;;
     prompt)
       local message event_data
-      message="$(jq -r '.message // empty' <<<"$payload" 2>/dev/null || true)"
+      message="$(jq -r '.prompt // .message // empty' <<<"$payload" 2>/dev/null || true)"
       [[ -n "$message" ]] || return
       event_data="$(jq -nc --arg prompt_text "$message" --arg prompt "$message" '{prompt_text: $prompt_text, prompt: $prompt}')"
       write_spool "prompt" "$event_data" "$session_id" "$repo_id" "$branch" "hook:UserPromptSubmit"

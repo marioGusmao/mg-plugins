@@ -33,9 +33,10 @@ Use this skill to add roadmap items without CLI helpers.
 
 After creating the roadmap artifact:
 
-1. Check whether `~/.ai-sessions/spool/` exists.
-2. If it exists, use Bash to append a `kdoc.artifact_created` event to `~/.ai-sessions/spool/events.jsonl`.
-3. Use the created roadmap file path in `event_data.path` and `roadmap-phase` in `event_data.type`.
+1. Check whether `~/.ai-sessions/spool/` exists and the current environment permits shell commands and writes to that path.
+2. If available, append a `kdoc.artifact_created` event to `~/.ai-sessions/spool/events.jsonl` with a shell command.
+3. If shell execution or spool writes are unavailable, skip event emission and report that it was skipped.
+4. Use the created roadmap file path in `event_data.path` and `roadmap-phase` in `event_data.type`.
 
 Example:
 

@@ -36,9 +36,10 @@ export interface ToolHandlers {
 export declare function createToolHandlers(projectDir: string, options?: {
     sharedConnection?: boolean;
 }): ToolHandlers;
+export declare function getPackageVersion(): string;
 export declare function startServer(projectDir: string): Promise<void>;
 /**
  * Parse the --project argument from process.argv.
- * Falls back to process.cwd() when not specified.
+ * Falls back to process.cwd() when not specified or when the value is empty/whitespace.
  */
 export declare function parseProjectDir(argv: string[]): string;

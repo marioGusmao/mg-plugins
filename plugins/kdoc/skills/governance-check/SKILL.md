@@ -8,7 +8,7 @@ metadata:
 
 # kdoc:governance-check
 
-Use this skill to audit Knowledge content with `Read`, `Glob`, and `Grep`.
+Use this skill to audit Knowledge content with the current agent's file read, glob, and search capabilities.
 
 ## Workflow
 

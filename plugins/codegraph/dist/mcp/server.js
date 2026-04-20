@@ -297,12 +297,25 @@ const symbolDisambigSchema = {
         .describe('Recursion depth (1-15, default 5)'),
 };
 // ---------------------------------------------------------------------------
+// Version helper — reads version from package.json at runtime
+// ---------------------------------------------------------------------------
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
+export function getPackageVersion() {
+    try {
+        const pkgJsonPath = path.resolve(__dirname, '..', '..', 'package.json');
+        return JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8')).version;
+    }
+    catch {
+        return '0.0.0';
+    }
+}
+// ---------------------------------------------------------------------------
 // startServer — creates and connects MCP stdio server
 // ---------------------------------------------------------------------------
 export async function startServer(projectDir) {
     const server = new McpServer({
         name: 'codegraph',
-        version: '1.1.2',
+        version: getPackageVersion(),
     });
     const handlers = createToolHandlers(projectDir, { sharedConnection: true });
     /** Wrap a handler to catch exceptions and return a structured error instead of crashing. */
@@ -373,11 +386,11 @@ export async function startServer(projectDir) {
 // ---------------------------------------------------------------------------
 /**
  * Parse the --project argument from process.argv.
- * Falls back to process.cwd() when not specified.
+ * Falls back to process.cwd() when not specified or when the value is empty/whitespace.
  */
 export function parseProjectDir(argv) {
     const idx = argv.indexOf('--project');
-    if (idx !== -1 && argv[idx + 1]) {
+    if (idx !== -1 && argv[idx + 1] && argv[idx + 1].trim() !== '') {
         return path.resolve(argv[idx + 1]);
     }
     return process.cwd();

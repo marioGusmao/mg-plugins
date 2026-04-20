@@ -1,6 +1,6 @@
 {
   "plugin": "codegraph",
-  "version": "1.1.10",
+  "version": "1.1.18",
   "schema_version": "1.0.0",
   "capabilities": [
     {
