@@ -32,7 +32,7 @@
     {
       "name": "kdoc",
       "description": "Knowledge documentation toolkit with a governance engine, MCP server (13 tools), and ai-sessions daemon integration",
-      "version": "1.0.38",
+      "version": "1.0.40",
       "source": "./plugins/kdoc",
       "category": "development",
       "keywords": []
@@ -40,7 +40,7 @@
     {
       "name": "router-plugin",
       "description": "Protocol pack — certify and scaffold router contracts for inter-agent communication",
-      "version": "1.0.8",
+      "version": "1.0.9",
       "source": "./plugins/router-plugin",
       "category": "development",
       "keywords": ["router", "protocol", "certification", "scaffold", "inter-agent"]

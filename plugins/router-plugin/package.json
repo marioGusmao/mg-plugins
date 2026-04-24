@@ -1,6 +1,6 @@
 {
   "name": "router-plugin",
-  "version": "0.1.0",
+  "version": "1.0.9",
   "private": true,
   "description": "Reusable router protocol pack for repositories that consume inbox packets or author packets for delivery",
   "type": "module",
